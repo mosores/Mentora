@@ -1,0 +1,817 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #fbfaf7;
+  --foreground: #16202a;
+  --surface: #ffffff;
+  --surface-soft: #f6fbf9;
+  --line: rgba(22, 32, 42, 0.10);
+  --ink-muted: #64748b;
+  --teal: #0f766e;
+  --sky: #0e7490;
+  --coral: #f97362;
+  --indigo-glow: rgba(20, 184, 166, 0.09);
+  --cyan-glow: rgba(14, 116, 144, 0.08);
+  --coral-glow: rgba(249, 115, 98, 0.07);
+
+  /* make-interfaces-feel-better: shadow-as-border tokens */
+  --ring-line: 0 0 0 1px rgba(23, 32, 42, 0.08);
+  --ring-line-teal: 0 0 0 1px rgba(15, 118, 110, 0.14);
+  --shadow-xs: 0 1px 2px rgba(23, 32, 42, 0.04);
+  --shadow-sm: 0 2px 6px rgba(23, 32, 42, 0.06);
+  --shadow-md: 0 6px 18px rgba(23, 32, 42, 0.07);
+  --shadow-lg: 0 14px 40px rgba(23, 32, 42, 0.09);
+  --shadow-xl: 0 24px 60px rgba(23, 32, 42, 0.12);
+  /* Standardized concentric radii scale */
+  --r-sm: 8px;
+  --r-md: 12px;
+  --r-lg: 16px;
+  --r-xl: 20px;
+  --r-2xl: 24px;
+  /* Motion */
+  --ease-emphasized: cubic-bezier(0.2, 0, 0, 1);
+  --ease-standard: cubic-bezier(0.4, 0, 0.2, 1);
+  --dur-fast: 140ms;
+  --dur-base: 200ms;
+  --dur-slow: 320ms;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
+  background-color: var(--background);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  margin: 0;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.92), rgba(247, 251, 250, 0.96)),
+    linear-gradient(90deg, rgba(14, 116, 144, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(15, 118, 110, 0.045) 1px, transparent 1px),
+    #fffdf8;
+  background-size: auto, 72px 72px, 72px 72px, auto;
+  color: var(--foreground);
+  font-family: 'Outfit', 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  overflow-x: hidden;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Custom Scrollbar for cool student look */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: rgba(255, 255, 255, 0.02);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: rgba(99, 102, 241, 0.25);
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(99, 102, 241, 0.45);
+}
+
+/* Glassmorphism & Cyber Accents */
+.glass {
+  background: rgba(255, 255, 255, 0.84);
+  border: 1px solid rgba(22, 32, 42, 0.08);
+  backdrop-filter: blur(20px);
+  box-shadow: 0 20px 70px rgba(22, 32, 42, 0.10);
+}
+
+.glass-nav {
+  background: rgba(255, 253, 248, 0.84);
+  border-b: 1px solid rgba(22, 32, 42, 0.08);
+  backdrop-filter: blur(16px);
+}
+
+.glass-card-hover {
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.glass-card-hover:hover {
+  transform: translateY(-4px);
+  border-color: rgba(99, 102, 241, 0.35);
+  box-shadow:
+    0 18px 45px rgba(22, 32, 42, 0.12),
+    0 0 0 1px rgba(14, 116, 144, 0.08);
+}
+
+/* 3D Flashcard Flipping Classes */
+.perspective-1000 {
+  perspective: 1000px;
+}
+
+.preserve-3d {
+  transform-style: preserve-3d;
+}
+
+.backface-hidden {
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+}
+
+.rotate-y-180 {
+  transform: rotateY(180deg);
+}
+
+/* Animations */
+@keyframes pulseGlow {
+  0%, 100% {
+    opacity: 0.5;
+    box-shadow: 0 0 15px rgba(6, 182, 212, 0.2);
+  }
+  50% {
+    opacity: 1;
+    box-shadow: 0 0 30px rgba(6, 182, 212, 0.4);
+  }
+}
+
+.pulse-glow-cyan {
+  animation: pulseGlow 3s infinite ease-in-out;
+}
+
+@keyframes textShimmer {
+  0% {
+    background-position: 0% 50%;
+  }
+  50% {
+    background-position: 100% 50%;
+  }
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
+.gradient-text-shimmer {
+  background: linear-gradient(to right, var(--teal), var(--sky), var(--coral), var(--teal));
+  background-size: 300% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  animation: textShimmer 6s infinite linear;
+}
+
+/* Premium light product shell */
+.tracking-tight,
+.tracking-wide,
+.tracking-wider,
+.tracking-widest {
+  letter-spacing: 0 !important;
+}
+
+.mentora-app {
+  isolation: isolate;
+}
+
+.mentora-nav {
+  box-shadow: 0 10px 35px rgba(22, 32, 42, 0.07);
+}
+
+.mentora-nav .rounded-xl:first-child {
+  background: linear-gradient(135deg, var(--teal), var(--sky)) !important;
+  box-shadow: 0 12px 28px rgba(15, 118, 110, 0.20) !important;
+}
+
+.mentora-nav nav {
+  background: rgba(255, 255, 255, 0.78) !important;
+  border-color: var(--line) !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.88);
+}
+
+.mentora-hero {
+  position: relative;
+}
+
+.mentora-hero::before {
+  content: "";
+  position: absolute;
+  inset: 1.5rem 0 auto 0;
+  height: 5px;
+  background: linear-gradient(90deg, var(--teal), var(--sky), var(--coral));
+  border-radius: 999px;
+  opacity: 0.9;
+}
+
+.mentora-hero h1 {
+  color: #111827;
+}
+
+.metric-tile,
+.premium-card,
+.hero-preview,
+.mentora-workspace {
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.96), rgba(248, 252, 250, 0.96)) !important;
+  border: 1px solid var(--line) !important;
+  box-shadow: 0 18px 50px rgba(22, 32, 42, 0.10) !important;
+}
+
+.metric-tile,
+.premium-card {
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.metric-tile:hover,
+.premium-card:hover {
+  transform: translateY(-2px);
+  border-color: rgba(15, 118, 110, 0.22) !important;
+  box-shadow: 0 22px 60px rgba(22, 32, 42, 0.13) !important;
+}
+
+.product-band {
+  background: rgba(255, 255, 255, 0.58) !important;
+  border-color: var(--line) !important;
+}
+
+.hero-preview {
+  overflow: hidden;
+  position: relative;
+}
+
+.hero-preview::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background:
+    linear-gradient(135deg, rgba(15, 118, 110, 0.07), transparent 38%),
+    repeating-linear-gradient(90deg, rgba(14, 116, 144, 0.06) 0 1px, transparent 1px 26px);
+  pointer-events: none;
+}
+
+.hero-preview > * {
+  position: relative;
+}
+
+.mentora-workspace {
+  background:
+    linear-gradient(180deg, #ffffff, #f7fbfa) !important;
+}
+
+.mentora-sidebar {
+  background:
+    linear-gradient(180deg, #ffffff, #f3faf7) !important;
+  border-right-color: var(--line) !important;
+}
+
+.mentora-sidebar nav button {
+  border: 1px solid transparent;
+}
+
+.mentora-sidebar nav button.bg-indigo-600 {
+  background: #e8f7f4 !important;
+  color: #0f3f3a !important;
+  border-color: rgba(15, 118, 110, 0.18) !important;
+  box-shadow: inset 4px 0 0 var(--teal), 0 8px 22px rgba(15, 118, 110, 0.08) !important;
+}
+
+.mentora-panel {
+  background:
+    linear-gradient(180deg, rgba(249, 253, 251, 0.96), rgba(255, 255, 255, 0.98)) !important;
+}
+
+.mentora-workspace section,
+.mentora-workspace form,
+.mentora-workspace article,
+.hero-preview > div,
+.mentora-sidebar > div:last-child,
+.mentora-sidebar > div:first-child > div:nth-child(2) {
+  background-color: #ffffff !important;
+  border-color: var(--line) !important;
+  box-shadow: 0 12px 34px rgba(22, 32, 42, 0.07) !important;
+}
+
+.mentora-workspace textarea,
+.mentora-workspace input,
+.mentora-workspace select {
+  min-height: 42px;
+  border-radius: 8px !important;
+}
+
+.mentora-workspace textarea {
+  background: #fbfefd !important;
+}
+
+.mentora-workspace button.bg-indigo-600,
+.mentora-workspace button.bg-teal-600,
+.mentora-app a.bg-gradient-to-r {
+  background: linear-gradient(135deg, var(--teal), var(--sky)) !important;
+  color: white !important;
+  box-shadow: 0 12px 26px rgba(15, 118, 110, 0.18) !important;
+}
+
+.mentora-workspace button.bg-slate-800 {
+  background: #eef8f6 !important;
+  color: #0f3f3a !important;
+  border: 1px solid rgba(15, 118, 110, 0.14) !important;
+}
+
+.mentora-workspace .border-dashed {
+  border-color: rgba(15, 118, 110, 0.30) !important;
+  background:
+    linear-gradient(180deg, rgba(239, 250, 247, 0.88), rgba(255, 255, 255, 0.95)) !important;
+}
+
+.mentora-workspace .border-l-2 {
+  border-left-color: var(--teal) !important;
+}
+
+.mentora-workspace .ml-auto.bg-indigo-600\/90 {
+  background: linear-gradient(135deg, var(--teal), var(--sky)) !important;
+  color: #ffffff !important;
+}
+
+.mentora-workspace .ml-auto.bg-indigo-600\/90 * {
+  color: #ffffff !important;
+}
+
+/* Light deployment theme overrides for the current app shell. */
+main {
+  color: #17202a !important;
+}
+
+.absolute.rounded-full.blur-3xl,
+.absolute.rounded-full.blur-\[100px\] {
+  display: none !important;
+}
+
+.bg-slate-950,
+.bg-slate-950\/80,
+.bg-slate-950\/60,
+.bg-slate-950\/40,
+.bg-slate-950\/35,
+.bg-slate-900,
+.bg-slate-900\/50,
+.bg-slate-900\/40,
+.bg-slate-800,
+.bg-slate-700,
+.bg-indigo-950 {
+  background-color: #ffffff !important;
+}
+
+.from-slate-900,
+.from-slate-950,
+.from-indigo-950 {
+  --tw-gradient-from: #ffffff var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(255, 255, 255, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #f7fbfa var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.to-slate-950,
+.to-indigo-950 {
+  --tw-gradient-to: #f7fbfa var(--tw-gradient-to-position) !important;
+}
+
+.bg-white\/\[0\.01\],
+.bg-white\/\[0\.02\],
+.bg-white\/\[0\.03\],
+.bg-white\/\[0\.04\],
+.bg-white\/\[0\.06\],
+.bg-white\/\[0\.08\],
+.bg-white\/10,
+.bg-white\/15,
+.bg-indigo-500\/5,
+.bg-indigo-500\/10,
+.bg-indigo-500\/15,
+.bg-cyan-400\/10,
+.bg-cyan-500\/10,
+.bg-teal-600 {
+  background-color: rgba(255, 255, 255, 0.86) !important;
+}
+
+.bg-indigo-600,
+.bg-indigo-600\/90,
+.hover\:bg-indigo-500:hover,
+.bg-teal-600:hover,
+.hover\:bg-teal-500:hover {
+  background-color: #0f766e !important;
+}
+
+.bg-slate-800:hover,
+.bg-slate-700:hover {
+  background-color: #eef8f6 !important;
+}
+
+.text-white,
+.text-slate-100,
+.text-slate-200,
+.text-slate-300,
+.text-slate-400 {
+  color: #17202a !important;
+}
+
+.text-slate-500,
+.text-slate-600 {
+  color: #64748b !important;
+}
+
+.text-indigo-300,
+.text-indigo-400,
+.text-cyan-400,
+.text-cyan-300,
+.text-teal-600 {
+  color: #0e7490 !important;
+}
+
+.text-green-400 {
+  color: #15803d !important;
+}
+
+.text-yellow-400 {
+  color: #b45309 !important;
+}
+
+.text-red-400 {
+  color: #b91c1c !important;
+}
+
+.border-white\/5,
+.border-white\/10,
+.border-white\/\[0\.03\],
+.border-indigo-500\/20,
+.border-indigo-500\/25,
+.border-cyan-400\/20,
+.border-cyan-400\/30,
+.border-cyan-500\/25,
+.border-indigo-500\/10 {
+  border-color: rgba(22, 32, 42, 0.10) !important;
+}
+
+.shadow-2xl,
+.shadow-xl,
+.shadow-md {
+  box-shadow: 0 18px 55px rgba(22, 32, 42, 0.10) !important;
+}
+
+.from-indigo-600,
+.from-indigo-500,
+.to-indigo-500,
+.to-indigo-400 {
+  --tw-gradient-from: #0f766e var(--tw-gradient-from-position) !important;
+  --tw-gradient-to: rgba(15, 118, 110, 0) var(--tw-gradient-to-position) !important;
+  --tw-gradient-stops: var(--tw-gradient-from), #0e7490 var(--tw-gradient-via-position), var(--tw-gradient-to) !important;
+}
+
+.rounded-2xl,
+.rounded-3xl {
+  border-radius: 8px !important;
+}
+
+.rounded-xl,
+.rounded-lg {
+  border-radius: 8px !important;
+}
+
+input,
+select,
+textarea {
+  background-color: #ffffff !important;
+  color: #17202a !important;
+  border-color: rgba(22, 32, 42, 0.12) !important;
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #94a3b8 !important;
+}
+
+/* Styled Focus Ring */
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 2px solid #6366f1;
+  outline-offset: 2px;
+}
+
+/* Final Mentora student UI pass: bright, premium, and less corporate. */
+:root {
+  --background: #fffdfa;
+  --foreground: #17202a;
+  --surface: #ffffff;
+  --surface-soft: #f7fcfb;
+  --line: rgba(23, 32, 42, 0.11);
+  --ink-muted: #667085;
+  --teal: #0f766e;
+  --sky: #0e7490;
+  --coral: #ff6b5f;
+  --lemon: #f5c542;
+}
+
+body {
+  background:
+    linear-gradient(180deg, rgba(255, 253, 250, 0.98), rgba(246, 252, 251, 0.98)),
+    linear-gradient(90deg, rgba(15, 118, 110, 0.045) 1px, transparent 1px),
+    linear-gradient(180deg, rgba(245, 197, 66, 0.05) 1px, transparent 1px),
+    #fffdfa;
+  background-size: auto, 84px 84px, 84px 84px, auto;
+}
+
+.mentora-nav {
+  background: rgba(255, 253, 250, 0.88) !important;
+}
+
+.mentora-nav nav,
+.mentora-nav button,
+.mentora-nav a {
+  letter-spacing: 0 !important;
+}
+
+.mentora-nav nav {
+  gap: 1.25rem !important;
+}
+
+.mentora-nav nav a,
+.mentora-nav nav button {
+  color: #405261 !important;
+}
+
+.mentora-nav nav a:hover,
+.mentora-nav nav button:hover {
+  color: var(--teal) !important;
+}
+
+.mentora-hero {
+  min-height: min(720px, calc(100vh - 72px));
+}
+
+.mentora-hero::before {
+  inset: 1rem auto auto 1.5rem;
+  width: min(420px, calc(100% - 3rem));
+  height: 4px;
+  background: linear-gradient(90deg, var(--coral), var(--lemon), var(--teal), var(--sky));
+}
+
+.mentora-hero h1 {
+  max-width: 10ch;
+}
+
+.mentora-hero p {
+  color: #526170 !important;
+}
+
+.gradient-text-shimmer {
+  background: linear-gradient(90deg, var(--coral), var(--teal), var(--sky));
+  background-size: 220% auto;
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+}
+
+.hero-preview,
+.premium-card,
+.metric-tile,
+.mentora-workspace {
+  border-radius: 8px !important;
+  border-color: rgba(23, 32, 42, 0.10) !important;
+  box-shadow: 0 16px 44px rgba(23, 32, 42, 0.09) !important;
+}
+
+.hero-preview {
+  background: linear-gradient(180deg, #ffffff, #f6fcfb) !important;
+}
+
+.hero-preview::before {
+  background:
+    linear-gradient(135deg, rgba(255, 107, 95, 0.08), transparent 36%),
+    linear-gradient(90deg, rgba(245, 197, 66, 0.12), transparent 46%),
+    repeating-linear-gradient(90deg, rgba(14, 116, 144, 0.06) 0 1px, transparent 1px 28px);
+}
+
+.product-band,
+#product {
+  background: rgba(255, 255, 255, 0.66) !important;
+}
+
+.mentora-workspace {
+  background: #ffffff !important;
+  min-height: 700px;
+}
+
+.mentora-sidebar {
+  background: linear-gradient(180deg, #ffffff, #f8fdfb) !important;
+}
+
+.mentora-sidebar nav button {
+  height: 44px;
+  letter-spacing: 0 !important;
+}
+
+.mentora-sidebar nav button:not(.bg-indigo-600):hover {
+  background: #f3faf8 !important;
+  color: #123f3a !important;
+}
+
+.mentora-panel {
+  background:
+    linear-gradient(180deg, rgba(247, 252, 251, 0.9), rgba(255, 255, 255, 0.96)) !important;
+}
+
+.mentora-workspace section,
+.mentora-workspace form,
+.mentora-workspace article,
+.hero-preview > div {
+  border-radius: 8px !important;
+}
+
+.mentora-workspace button,
+.mentora-app a {
+  letter-spacing: 0 !important;
+}
+
+.mentora-workspace button:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
+}
+
+.mentora-workspace .bg-indigo-600,
+.mentora-workspace .bg-indigo-600\/90,
+.mentora-app .bg-gradient-to-r {
+  background: linear-gradient(135deg, var(--coral), var(--teal)) !important;
+}
+
+.mentora-workspace .bg-slate-800,
+.mentora-workspace .hover\:bg-slate-700:hover {
+  background: #f3faf8 !important;
+  color: #123f3a !important;
+}
+
+.mentora-workspace table {
+  border-collapse: collapse;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+.mentora-workspace tbody tr:hover {
+  background: #f8fcfb;
+}
+
+@media (max-width: 768px) {
+  .mentora-hero {
+    min-height: auto;
+  }
+
+  .mentora-hero h1 {
+    max-width: 100%;
+  }
+
+  .mentora-workspace {
+    min-height: auto;
+  }
+}
+
+/* ============================================================
+   make-interfaces-feel-better — global polish layer
+   Principles: text-wrap balance/pretty, tabular-nums on dynamic
+   numbers, scale-on-press 0.96, specific transition properties
+   (never `transition: all`), 40×40 hit areas, concentric radius.
+   ============================================================ */
+
+/* Typography: balance headings, pretty body, monospaced figures for numbers */
+h1, h2, h3, h4, h5, h6 {
+  text-wrap: balance;
+}
+
+p, li, blockquote {
+  text-wrap: pretty;
+}
+
+/* Numeric displays: KPIs, scores, counts, prices — prevent layout shift */
+.tabular,
+[data-numeric],
+.mentora-workspace [class*="text-3xl"],
+.mentora-workspace [class*="text-4xl"],
+.mentora-workspace [class*="text-5xl"],
+.metric-tile [class*="text-"],
+.kpi [class*="text-"] {
+  font-variant-numeric: tabular-nums;
+  font-feature-settings: "tnum" 1, "cv01" 1;
+}
+
+/* Global: split `transition: all` into specific properties */
+.glass-card-hover {
+  transition: transform var(--dur-base) var(--ease-standard),
+              box-shadow var(--dur-base) var(--ease-standard),
+              border-color var(--dur-base) var(--ease-standard);
+}
+
+/* Surfaces: shadow-as-border instead of 1px borders where the app
+   draws card depth. Applied to the existing premium card classes. */
+.metric-tile,
+.premium-card {
+  box-shadow:
+    0 0 0 1px rgba(23, 32, 42, 0.06),
+    0 6px 18px rgba(23, 32, 42, 0.07) !important;
+}
+
+.metric-tile:hover,
+.premium-card:hover {
+  box-shadow:
+    0 0 0 1px rgba(15, 118, 110, 0.18),
+    0 14px 40px rgba(23, 32, 42, 0.10) !important;
+}
+
+/* Scale-on-press: tactile feedback on every interactive control.
+   Buttons keep their existing background; we only add a transform
+   on :active and a quick spring on release. */
+.mentora-workspace button:not(:disabled):active,
+.mentora-app button:not(:disabled):active,
+.mentora-app a.button:active,
+.mentora-app a[class*="bg-gradient-to-r"]:active {
+  transform: scale(0.96);
+}
+
+.mentora-workspace button:not(:disabled),
+.mentora-app a[class*="bg-gradient-to-r"] {
+  transition: transform var(--dur-fast) var(--ease-emphasized),
+              background-color var(--dur-base) var(--ease-standard),
+              box-shadow var(--dur-base) var(--ease-standard),
+              color var(--dur-base) var(--ease-standard);
+}
+
+/* Icon-only buttons: guarantee 40×40 hit area */
+.mentora-workspace button:has(> svg:only-child),
+.mentora-app button:has(> svg:only-child) {
+  min-width: 40px;
+  min-height: 40px;
+}
+
+/* Concentric radius: when a card holds a button, input, or nested
+   card, the inner element uses a smaller radius so the corners nest
+   visually instead of colliding. */
+.mentora-workspace section button,
+.mentora-workspace article button,
+.premium-card button,
+.metric-tile button {
+  border-radius: var(--r-sm) !important;
+}
+
+.mentora-workspace section input,
+.mentora-workspace section textarea,
+.mentora-workspace section select,
+.premium-card input,
+.premium-card textarea {
+  border-radius: var(--r-sm) !important;
+}
+
+/* Contextual icon cross-fade: when a button swaps icon on state
+   change (e.g. play/pause, chevron rotate), both icons stack and
+   cross-fade instead of popping. Opt-in via [data-icon-swap]. */
+[data-icon-swap] {
+  position: relative;
+}
+
+[data-icon-swap] svg {
+  transition: opacity var(--dur-base) var(--ease-standard),
+              transform var(--dur-base) var(--ease-emphasized);
+}
+
+[data-icon-swap] svg[data-icon-active] {
+  position: absolute;
+  inset: 0;
+  margin: auto;
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+[data-icon-swap][data-active="true"] svg[data-icon-default] {
+  opacity: 0;
+  transform: scale(0.8);
+}
+
+[data-icon-swap][data-active="true"] svg[data-icon-active] {
+  opacity: 1;
+  transform: scale(1);
+}
+
+/* Respect reduced-motion: kill transforms/scales, keep colors */
+@media (prefers-reduced-motion: reduce) {
+  .mentora-workspace button:not(:disabled):active,
+  .mentora-app button:not(:disabled):active,
+  .mentora-app a.button:active,
+  .mentora-app a[class*="bg-gradient-to-r"]:active {
+    transform: none;
+  }
+}

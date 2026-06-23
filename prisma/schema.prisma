@@ -1,0 +1,290 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  student
+  institution_admin
+  teacher
+  platform_admin
+  support
+}
+
+enum DocumentStatus {
+  pending
+  processing
+  ready
+  failed
+}
+
+enum AIProviderStatus {
+  enabled
+  disabled
+  degraded
+}
+
+model Tenant {
+  id                 String              @id @default(cuid())
+  name               String
+  country            String              @default("PE")
+  privacyTier        String              @default("standard")
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+  users              User[]
+  institutions       Institution[]
+  providerPolicies   TenantAIProvider[]
+  routingPolicies    ModelRoutingPolicy[]
+  auditLogs          AuditLog[]
+}
+
+model User {
+  id                  String              @id @default(cuid())
+  tenantId            String
+  tenant              Tenant              @relation(fields: [tenantId], references: [id])
+  email               String              @unique
+  passwordHash        String?
+  name                String
+  role                Role                @default(student)
+  preferredLanguage   String              @default("es")
+  country             String              @default("PE")
+  educationLevel      String?
+  institutionId       String?
+  institution         Institution?        @relation(fields: [institutionId], references: [id])
+  learningProfile     LearningProfile?
+  studySpaces         StudySpace[]
+  usageEvents         UsageEvent[]
+  auditLogs           AuditLog[]
+  createdAt           DateTime            @default(now())
+  updatedAt           DateTime            @updatedAt
+
+  @@index([tenantId, role])
+}
+
+model Institution {
+  id             String       @id @default(cuid())
+  tenantId       String
+  tenant         Tenant       @relation(fields: [tenantId], references: [id])
+  name           String
+  country        String       @default("PE")
+  educationType  String
+  users          User[]
+  studySpaces    StudySpace[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([tenantId])
+}
+
+model LearningProfile {
+  id                         String   @id @default(cuid())
+  userId                     String   @unique
+  user                       User     @relation(fields: [userId], references: [id])
+  preferredFormats           Json
+  studyBarriers              Json
+  recommendedSessionLength   String
+  recommendedStudyMode       String
+  tonePreference             String   @default("clear_encouraging")
+  createdAt                  DateTime @default(now())
+  updatedAt                  DateTime @updatedAt
+}
+
+model StudySpace {
+  id              String        @id @default(cuid())
+  tenantId        String
+  userId          String
+  user            User          @relation(fields: [userId], references: [id])
+  institutionId   String?
+  institution     Institution?  @relation(fields: [institutionId], references: [id])
+  title           String
+  courseName      String?
+  language        String        @default("es")
+  documents       Document[]
+  flashcards      Flashcard[]
+  quizzes         Quiz[]
+  chats           ChatMessage[]
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
+
+  @@index([tenantId, userId])
+}
+
+model Document {
+  id              String          @id @default(cuid())
+  tenantId        String
+  userId          String
+  studySpaceId    String
+  studySpace      StudySpace      @relation(fields: [studySpaceId], references: [id])
+  name            String
+  mimeType        String
+  storageKey      String
+  status          DocumentStatus  @default(pending)
+  summary         String?
+  pageCount       Int?
+  chunks          DocumentChunk[]
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
+
+  @@index([tenantId, userId, studySpaceId])
+}
+
+model DocumentChunk {
+  id           String   @id @default(cuid())
+  tenantId     String
+  userId       String
+  documentId   String
+  document     Document @relation(fields: [documentId], references: [id])
+  pageNumber   Int?
+  content      String
+  embedding    Json?
+  tokenCount   Int?
+  createdAt    DateTime @default(now())
+
+  @@index([tenantId, userId, documentId])
+}
+
+model ChatMessage {
+  id            String      @id @default(cuid())
+  tenantId      String
+  userId        String
+  studySpaceId  String
+  studySpace    StudySpace  @relation(fields: [studySpaceId], references: [id])
+  role          String
+  content       String
+  citations     Json?
+  provider      String?
+  model         String?
+  createdAt     DateTime    @default(now())
+
+  @@index([tenantId, userId, studySpaceId])
+}
+
+model Flashcard {
+  id             String      @id @default(cuid())
+  tenantId       String
+  userId         String
+  studySpaceId   String
+  studySpace     StudySpace  @relation(fields: [studySpaceId], references: [id])
+  front          String
+  back           String
+  topic          String?
+  difficulty     String      @default("medium")
+  reviewStatus   String      @default("new")
+  sourceDocument String?
+  createdAt      DateTime    @default(now())
+  updatedAt      DateTime    @updatedAt
+
+  @@index([tenantId, userId, studySpaceId])
+}
+
+model Quiz {
+  id             String        @id @default(cuid())
+  tenantId       String
+  userId         String
+  studySpaceId   String
+  studySpace     StudySpace    @relation(fields: [studySpaceId], references: [id])
+  title          String
+  questions      Json
+  attempts       QuizAttempt[]
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([tenantId, userId, studySpaceId])
+}
+
+model QuizAttempt {
+  id          String   @id @default(cuid())
+  quizId      String
+  quiz        Quiz     @relation(fields: [quizId], references: [id])
+  userId      String
+  score       Int
+  answers     Json
+  weakTopics  Json?
+  createdAt   DateTime @default(now())
+}
+
+model AIProvider {
+  id              String              @id @default(cuid())
+  name            String              @unique
+  displayName     String
+  privacyLevel    String
+  status          AIProviderStatus    @default(enabled)
+  baseUrl         String?
+  models          AIModel[]
+  tenantPolicies  TenantAIProvider[]
+  usageEvents     UsageEvent[]
+}
+
+model AIModel {
+  id               String     @id @default(cuid())
+  providerId       String
+  provider         AIProvider @relation(fields: [providerId], references: [id])
+  modelKey         String     @unique
+  displayName      String
+  capabilities     Json
+  costTier         String
+  privacyLevel     String
+  maxContextTokens Int
+  enabled          Boolean    @default(true)
+}
+
+model TenantAIProvider {
+  id          String     @id @default(cuid())
+  tenantId    String
+  tenant      Tenant     @relation(fields: [tenantId], references: [id])
+  providerId  String
+  provider    AIProvider @relation(fields: [providerId], references: [id])
+  allowed     Boolean    @default(false)
+
+  @@unique([tenantId, providerId])
+}
+
+model ModelRoutingPolicy {
+  id              String   @id @default(cuid())
+  tenantId        String
+  tenant          Tenant   @relation(fields: [tenantId], references: [id])
+  taskType        String
+  allowedTiers    Json
+  preferredModels Json
+  fallbackModels  Json
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@unique([tenantId, taskType])
+}
+
+model UsageEvent {
+  id             String      @id @default(cuid())
+  tenantId       String
+  userId         String
+  user           User        @relation(fields: [userId], references: [id])
+  providerId     String?
+  provider       AIProvider? @relation(fields: [providerId], references: [id])
+  eventType      String
+  model          String?
+  inputTokens    Int?
+  outputTokens   Int?
+  estimatedCost  Decimal?
+  metadata       Json?
+  createdAt      DateTime    @default(now())
+
+  @@index([tenantId, userId, eventType])
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  tenantId    String
+  tenant      Tenant   @relation(fields: [tenantId], references: [id])
+  actorUserId String?
+  actor       User?    @relation(fields: [actorUserId], references: [id])
+  action      String
+  resource    String
+  metadata    Json?
+  createdAt   DateTime @default(now())
+
+  @@index([tenantId, action])
+}
