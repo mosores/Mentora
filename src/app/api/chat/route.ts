@@ -3,6 +3,12 @@ import { generateGroundedText } from "@/lib/ai/gateway";
 import { isFreeOpenRouterModel } from "@/lib/ai/models";
 import { getAuthedProfile } from "@/lib/supabase/service";
 import { SAFETY_LIMITS } from "@/lib/limits";
+import {
+  generalTutorSystemPrompt,
+  tutorSystemPrompt,
+  buildGeneralTutorPrompt,
+  buildGroundedPrompt,
+} from "@/lib/ai/prompts";
 
 import { orchestrateChat } from "@/lib/ai/agents/orchestrator-agent";
 import { streamAnswer } from "@/lib/ai/agents/answer-agent";
@@ -259,11 +265,17 @@ export async function POST(request: Request) {
                 throw error;
               }
 
+              const isGeneralChat = citations.length === 0;
+              const fallbackSystem = isGeneralChat ? generalTutorSystemPrompt : tutorSystemPrompt;
+              const fallbackPrompt = isGeneralChat
+                ? buildGeneralTutorPrompt(body.message, body.locale, profile.learning_profile)
+                : buildGroundedPrompt(body.message, citations, body.locale, profile.learning_profile);
+
               const fallback = await generateGroundedText({
                 task: "tutor_chat",
                 priority: "speed",
-                system: "You are Mentora, a bilingual academic tutor.",
-                prompt: body.message,
+                system: fallbackSystem,
+                prompt: fallbackPrompt,
                 model: body.model ? "openrouter/free" : undefined,
                 openRouterApiKey: undefined,
               });
