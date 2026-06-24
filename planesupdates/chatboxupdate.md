@@ -1,4 +1,3 @@
-
 ```markdown
 # GitHub Reference Repositories for Mentora Chat Upgrade
 
@@ -32,7 +31,7 @@ Important rule:
 mkdir references
 ```
 
-* [x] Add `references/` to `.gitignore` so these projects are not committed.
+* [X] Add `references/` to `.gitignore` so these projects are not committed.
 
 ```bash
 echo "references/" >> .gitignore
@@ -56,16 +55,16 @@ git clone --depth 1 https://github.com/assistant-ui/assistant-ui.git references/
 
 Use it to study:
 
-* [x] Modern AI chat interface
-* [x] Message bubbles
-* [x] Thread layout
-* [x] Streaming message UX
-* [x] Retry/regenerate patterns
-* [x] Markdown rendering
-* [x] Attachment patterns
-* [x] Keyboard shortcuts
-* [x] Accessibility
-* [x] Clean React component architecture
+* [X] Modern AI chat interface
+* [X] Message bubbles
+* [X] Thread layout
+* [X] Streaming message UX
+* [X] Retry/regenerate patterns
+* [X] Markdown rendering
+* [X] Attachment patterns
+* [X] Keyboard shortcuts
+* [X] Accessibility
+* [X] Clean React component architecture
 
 Codex instruction:
 
@@ -91,14 +90,14 @@ git clone --depth 1 https://github.com/vercel/chatbot.git references/vercel-chat
 
 Use it to study:
 
-* [x] Next.js AI chatbot architecture
-* [x] AI SDK streaming
-* [x] Model provider switching
-* [x] Chat persistence
-* [x] Message rendering
-* [x] Artifacts
-* [x] File/message organization
-* [x] Production deployment patterns
+* [X] Next.js AI chatbot architecture
+* [X] AI SDK streaming
+* [X] Model provider switching
+* [X] Chat persistence
+* [X] Message rendering
+* [X] Artifacts
+* [X] File/message organization
+* [X] Production deployment patterns
 
 Codex instruction:
 
@@ -124,12 +123,12 @@ git clone --depth 1 https://github.com/mckaywrigley/chatbot-ui.git references/ch
 
 Use it to study:
 
-* [x] Conversation list
-* [x] Chat history
-* [x] Message formatting
-* [x] Prompt input UX
-* [x] Settings/model selection UX
-* [x] Clean user/assistant message layout
+* [X] Conversation list
+* [X] Chat history
+* [X] Message formatting
+* [X] Prompt input UX
+* [X] Settings/model selection UX
+* [X] Clean user/assistant message layout
 
 Codex instruction:
 
@@ -161,14 +160,14 @@ npm install react-markdown remark-gfm rehype-sanitize
 
 Use it to implement:
 
-* [x] Markdown headings
-* [x] Bullet lists
-* [x] Numbered lists
-* [x] Tables
-* [x] Inline code
-* [x] Code blocks
-* [x] Links
-* [x] Safe rendering
+* [X] Markdown headings
+* [X] Bullet lists
+* [X] Numbered lists
+* [X] Tables
+* [X] Inline code
+* [X] Code blocks
+* [X] Links
+* [X] Safe rendering
 
 Codex instruction:
 
@@ -200,12 +199,12 @@ npm install mermaid
 
 Use it to implement:
 
-* [x] Flowcharts
-* [x] Study diagrams
-* [x] Process diagrams
-* [x] Sequence diagrams
-* [x] Concept maps
-* [x] Architecture diagrams
+* [X] Flowcharts
+* [X] Study diagrams
+* [X] Process diagrams
+* [X] Sequence diagrams
+* [X] Concept maps
+* [X] Architecture diagrams
 
 Codex instruction:
 
@@ -217,31 +216,31 @@ Use Mermaid to render diagrams when the AI returns a mermaid code block. Add saf
 
 # Phase X — Search Inside Reference Projects
 
-* [x] Search for message components.
+* [X] Search for message components.
 
 ```bash
 find references -iname "*message*" -o -iname "*chat*" -o -iname "*markdown*"
 ```
 
-* [x] Search for Markdown rendering examples.
+* [X] Search for Markdown rendering examples.
 
 ```bash
 grep -R "react-markdown\|remark-gfm\|markdown" references -n --exclude-dir=node_modules
 ```
 
-* [x] Search for code block rendering examples.
+* [X] Search for code block rendering examples.
 
 ```bash
 grep -R "code block\|CodeBlock\|syntax" references -n --exclude-dir=node_modules
 ```
 
-* [x] Search for Mermaid examples.
+* [X] Search for Mermaid examples.
 
 ```bash
 grep -R "mermaid" references -n --exclude-dir=node_modules
 ```
 
-* [x] Search for streaming message logic.
+* [X] Search for streaming message logic.
 
 ```bash
 grep -R "stream\|useChat\|textStream\|delta" references -n --exclude-dir=node_modules
@@ -253,54 +252,54 @@ grep -R "stream\|useChat\|textStream\|delta" references -n --exclude-dir=node_mo
 
 ## From assistant-ui
 
-* [x] Message bubble layout
-* [x] Thread/chat container structure
-* [x] Loading and thinking state
-* [x] Retry/regenerate UX
-* [x] Better input behavior
-* [x] Accessibility ideas
+* [X] Message bubble layout
+* [X] Thread/chat container structure
+* [X] Loading and thinking state
+* [X] Retry/regenerate UX
+* [X] Better input behavior
+* [X] Accessibility ideas
 
 ## From Vercel Chatbot
 
-* [x] Next.js route organization
-* [x] AI SDK streaming patterns
-* [x] Artifact-style responses
-* [x] Chat history logic
-* [x] Model provider abstraction
+* [X] Next.js route organization
+* [X] AI SDK streaming patterns
+* [X] Artifact-style responses
+* [X] Chat history logic
+* [X] Model provider abstraction
 
 ## From Chatbot UI
 
-* [x] Sidebar conversation UX
-* [x] User/assistant message styling
-* [x] Prompt input layout
-* [x] Settings/model selector inspiration
+* [X] Sidebar conversation UX
+* [X] User/assistant message styling
+* [X] Prompt input layout
+* [X] Settings/model selector inspiration
 
 ## From react-markdown
 
-* [x] Markdown renderer
-* [x] GFM table support
-* [x] Custom component mapping
-* [x] Safe rendering with sanitize
+* [X] Markdown renderer
+* [X] GFM table support
+* [X] Custom component mapping
+* [X] Safe rendering with sanitize
 
 ## From Mermaid
 
-* [x] Mermaid diagram rendering
-* [x] Error fallback
-* [x] Client-only rendering strategy
+* [X] Mermaid diagram rendering
+* [X] Error fallback
+* [X] Client-only rendering strategy
 
 ---
 
 # Phase X — Recommended Implementation Strategy
 
-* [x] Do not migrate Mentora fully to another chat framework yet.
-* [x] Keep Mentora’s current backend:
+* [X] Do not migrate Mentora fully to another chat framework yet.
+* [X] Keep Mentora’s current backend:
   * `/api/chat`
   * Supabase conversations
   * Supabase messages
   * RAG citations
   * OpenAI/OpenRouter provider logic
-* [x] Upgrade the current frontend chat instead of replacing the full app.
-* [x] Create new reusable components:
+* [X] Upgrade the current frontend chat instead of replacing the full app.
+* [X] Create new reusable components:
 
 ```text
 src/components/chat/chat-message.tsx
@@ -311,8 +310,8 @@ src/components/chat/mermaid-diagram.tsx
 src/components/chat/chat-mode-badge.tsx
 ```
 
-* [x] Gradually move chat logic out of `src/components/mentora-app.tsx`.
-* [x] Keep old behavior working while improving the UI.
+* [X] Gradually move chat logic out of `src/components/mentora-app.tsx`.
+* [X] Keep old behavior working while improving the UI.
 
 ---
 

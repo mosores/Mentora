@@ -225,6 +225,7 @@ export function MentoraApp() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [models, setModels] = useState<ModelOption[]>([]);
   const [selectedModel, setSelectedModel] = useState("openrouter/free");
+  const [selectedMode, setSelectedMode] = useState<"fast" | "tutor" | "agent">("fast");
   const [paidModelPrompt, setPaidModelPrompt] = useState<ModelOption | null>(null);
   const [openRouterApiKey, setOpenRouterApiKey] = useState("");
   const [openRouterConnected, setOpenRouterConnected] = useState(false);
@@ -249,6 +250,10 @@ export function MentoraApp() {
           .from("generated_artifacts")
           .select("id, study_space_id, kind, title, content, citations, created_at")
           .order("created_at", { ascending: false }),
+        client
+          .from("document_processing_jobs")
+          .select("document_id, status, current_step, error_message")
+          .in("status", ["pending", "processing"]),
       ]);
     } catch (caught) {
       reportClientError("Workspace network request failed", caught);
@@ -262,7 +267,9 @@ export function MentoraApp() {
       { data: spaceRows, error: spaceError },
       { data: documentRows },
       { data: artifactRows },
+      { data: jobRows },
     ] = workspaceResult as [
+      { data: unknown; error: unknown },
       { data: unknown; error: unknown },
       { data: unknown; error: unknown },
       { data: unknown; error: unknown },
@@ -331,7 +338,30 @@ export function MentoraApp() {
       practiceStyle: String(learningProfile.practiceStyle ?? ""),
     });
     setSpaces(loadedSpaces);
-    setDocuments((documentRows ?? []) as DocumentRecord[]);
+
+    const rawDocs = (documentRows ?? []) as DocumentRecord[];
+    const jobs = ((jobRows as { data: unknown[] | null } | undefined)?.data ?? []) as {
+      document_id: string;
+      status: string;
+      current_step: string;
+      error_message: string | null;
+    }[];
+
+    const documentsWithJobs = rawDocs.map((doc) => {
+      const activeJob = jobs.find((j) => j && j.document_id === doc.id);
+      if (activeJob) {
+        return {
+          ...doc,
+          processing_status: (activeJob.status === "processing"
+            ? activeJob.current_step
+            : activeJob.status) as DocumentRecord["processing_status"],
+          error_message: activeJob.error_message || doc.error_message,
+        };
+      }
+      return doc;
+    });
+
+    setDocuments(documentsWithJobs);
     setArtifacts((artifactRows ?? []) as GeneratedArtifact[]);
     setMessages(loadedMessages);
 
@@ -375,6 +405,8 @@ export function MentoraApp() {
     return () => window.clearTimeout(timer);
   }, [loadWorkspace, supabase, session]);
 
+
+
   useEffect(() => {
     if (!session) {
       return;
@@ -409,11 +441,23 @@ export function MentoraApp() {
 
   const readyDocuments = activeDocuments.filter((document) => document.processing_status === "ready");
   const failedDocuments = activeDocuments.filter((document) => document.processing_status === "failed");
-  const processingDocuments = activeDocuments.filter((document) =>
-    ["pending", "processing"].includes(document.processing_status),
+  const processingDocuments = activeDocuments.filter(
+    (document) => document.processing_status !== "ready" && document.processing_status !== "failed"
   );
   const readiness = activeDocuments.length > 0 ? Math.round((readyDocuments.length / activeDocuments.length) * 100) : 0;
   const hasReadySources = readyDocuments.length > 0;
+
+  useEffect(() => {
+    if (!supabase || !session || processingDocuments.length === 0) {
+      return;
+    }
+
+    const interval = window.setInterval(() => {
+      void loadWorkspace(supabase);
+    }, 4000);
+
+    return () => window.clearInterval(interval);
+  }, [loadWorkspace, supabase, session, processingDocuments.length]);
 
   if (setupError) {
     return <SetupScreen message={setupError} />;
@@ -585,6 +629,8 @@ export function MentoraApp() {
                       onUpload={uploadDocument}
                       readyDocuments={readyDocuments}
                       selectedModel={selectedModel}
+                      selectedMode={selectedMode}
+                      onSelectMode={setSelectedMode}
                       t={t}
                       locale={locale}
                     />
@@ -902,6 +948,7 @@ export function MentoraApp() {
           locale,
           model: selectedModel,
           openRouterApiKey: selectedOpenRouterApiKey(),
+          mode: selectedMode,
         }),
         signal: chatController.signal,
       });
@@ -2075,6 +2122,38 @@ function RealStudentDashboard({
   );
 }
 
+function ChatModeSelector({
+  mode,
+  onChange,
+  t,
+}: {
+  mode: "fast" | "tutor" | "agent";
+  onChange: (mode: "fast" | "tutor" | "agent") => void;
+  t: Record<string, string>;
+}) {
+  return (
+    <div className="flex items-center gap-1 rounded-full border border-white/10 bg-white/[0.04] p-1 select-none">
+      {(["fast", "tutor", "agent"] as const).map((m) => {
+        const isActive = mode === m;
+        return (
+          <button
+            key={m}
+            type="button"
+            className={`rounded-full px-3 py-1.5 text-xs font-bold transition-all ${
+              isActive
+                ? "bg-cyan-300 text-slate-950 shadow-sm"
+                : "text-slate-400 hover:text-white hover:bg-white/[0.02]"
+            }`}
+            onClick={() => onChange(m)}
+          >
+            {m === "fast" ? t.fastChat : m === "tutor" ? t.pdfTutor : t.smartAgent}
+          </button>
+        );
+      })}
+    </div>
+  );
+}
+
 function TutorStudio({
   busy,
   disabled,
@@ -2088,6 +2167,8 @@ function TutorStudio({
   onUpload,
   readyDocuments,
   selectedModel,
+  selectedMode,
+  onSelectMode,
   t,
   locale,
 }: {
@@ -2103,6 +2184,8 @@ function TutorStudio({
   onUpload: (file: File) => void;
   readyDocuments: DocumentRecord[];
   selectedModel: string;
+  selectedMode: "fast" | "tutor" | "agent";
+  onSelectMode: (mode: "fast" | "tutor" | "agent") => void;
   t: Record<string, string>;
   locale: "es" | "en";
 }) {
@@ -2126,6 +2209,11 @@ function TutorStudio({
             />
           </div>
           <div className="student-chat-actions">
+            <ChatModeSelector
+              mode={selectedMode}
+              onChange={onSelectMode}
+              t={t}
+            />
             <ModelSelector
               models={models}
               openRouterConnected={openRouterConnected}
@@ -3283,9 +3371,20 @@ function StatusBadge({ status, t }: { status: DocumentRecord["processing_status"
 }
 
 function StatusDot({ status }: { status: DocumentRecord["processing_status"] }) {
-  const color =
-    status === "ready" ? "bg-emerald-300" : status === "failed" ? "bg-red-300" : status === "processing" ? "bg-amber-300" : "bg-slate-400";
-  return <span className={`h-2 w-2 shrink-0 rounded-full ${color}`} />;
+  const isReady = status === "ready";
+  const isFailed = status === "failed";
+  const isPending = status === "pending";
+  const isProcessing = !isReady && !isFailed && !isPending;
+
+  const color = isReady
+    ? "bg-emerald-300"
+    : isFailed
+    ? "bg-red-300"
+    : isPending
+    ? "bg-slate-400"
+    : "bg-amber-300";
+
+  return <span className={`h-2 w-2 shrink-0 rounded-full ${color} ${isProcessing ? "animate-pulse" : ""}`} />;
 }
 
 function ProfileFact({

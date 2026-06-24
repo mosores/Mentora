@@ -37,7 +37,19 @@ export type DocumentRecord = {
   user_id: string;
   file_name: string;
   storage_path: string;
-  processing_status: "pending" | "processing" | "ready" | "failed";
+  processing_status:
+    | "pending"
+    | "processing"
+    | "ready"
+    | "failed"
+    | "intake_validating"
+    | "reading_pdf"
+    | "chunking"
+    | "embedding"
+    | "verifying"
+    | "summarizing"
+    | "generating_diagrams"
+    | "generating_study_tools";
   error_message: string | null;
   metadata: Record<string, unknown>;
   created_at: string;

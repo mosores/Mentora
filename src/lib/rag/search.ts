@@ -1,6 +1,7 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
 import { embedTexts } from "@/lib/ai/gateway";
 import type { Citation } from "@/lib/types";
+import { SAFETY_LIMITS } from "@/lib/limits";
 
 type MatchRow = {
   id: string;
@@ -28,13 +29,37 @@ export async function retrieveCitations({
   tenantId,
   studySpaceId,
   query,
-  limit = 8,
+  limit = SAFETY_LIMITS.MAX_CITATIONS_PER_ANSWER,
 }: {
   service: SupabaseClient;
   tenantId: string;
   studySpaceId: string;
   query: string;
   limit?: number;
+}): Promise<Citation[]> {
+  try {
+    return await withTimeout(
+      doRetrieveCitations({ service, tenantId, studySpaceId, query, limit }),
+      SAFETY_LIMITS.RAG_RETRIEVAL_TIMEOUT
+    );
+  } catch (error) {
+    console.warn("[Mentora] RAG retrieval timed out or failed:", error);
+    return []; // Return empty list to degrade gracefully to general chat instead of crashing
+  }
+}
+
+async function doRetrieveCitations({
+  service,
+  tenantId,
+  studySpaceId,
+  query,
+  limit,
+}: {
+  service: SupabaseClient;
+  tenantId: string;
+  studySpaceId: string;
+  query: string;
+  limit: number;
 }): Promise<Citation[]> {
   const [embedding] = await embedTexts([query]);
   const { data, error } = await service.rpc("match_document_chunks", {
@@ -66,7 +91,7 @@ function rowToCitation(row: MatchRow): Citation {
     documentId: row.document_id,
     fileName: row.file_name ?? "Uploaded document",
     pageNumber: row.page_number,
-    content: row.content,
+    content: row.content.slice(0, SAFETY_LIMITS.MAX_CHARACTERS_PER_CITATION),
   };
 }
 
@@ -122,10 +147,26 @@ async function retrieveRecentReadyChunks({
         documentId: chunk.document_id,
         fileName: document.file_name,
         pageNumber: chunk.page_number,
-        content: chunk.content,
+        content: chunk.content.slice(0, SAFETY_LIMITS.MAX_CHARACTERS_PER_CITATION),
       }));
     }),
   );
 
   return chunkGroups.flat().slice(0, targetCount);
+}
+
+async function withTimeout<T>(promise: Promise<T>, timeoutMs: number): Promise<T> {
+  let timeout: ReturnType<typeof setTimeout> | null = null;
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeout = setTimeout(() => reject(new Error(`Operation timed out after ${timeoutMs}ms.`)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeout) {
+      clearTimeout(timeout);
+    }
+  }
 }
