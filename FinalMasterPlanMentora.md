@@ -1,129 +1,62 @@
-# Final Master Plan: Mentora
+# FinalMasterPlanMentora
 
-## Non-Negotiable Build Directive
+Mentora is a fully functional, production-oriented learning web app for college and university students. This is not an MVP or mock shell. Every student must create an account and log in before accessing study spaces, documents, chat, generated tools, or profile settings.
 
-Mentora is a 100% functional and operational web application. It is not an MVP, mockup, prototype, app shell, or disposable demo.
+## Non-Negotiable Product Rules
 
-Every visible workflow must be backed by real application behavior, API routes, persistence, validation, security controls, and verifiable tests. Design-only placeholders are allowed only for future integrations that are clearly labeled as unavailable, and they must never block the core student loop.
+- Authentication is required before the app loads private learning data.
+- Each user can only access their own tenant, study spaces, documents, document chunks, conversations, messages, generated tools, and profile.
+- Admin-only pages must remain restricted to admin users for KPIs, user administration, and user counts.
+- Uploaded PDFs must be processed into readable study text, chunks, embeddings, and citations before the tutor can answer from them. A document must not be marked ready if extraction only produced page markers, empty text, or unusable fragments.
+- PDF ingestion must include an OCR/vision fallback for scanned, image-based, slide-heavy, or visually rendered PDFs so the tutor, summaries, flashcards, quizzes, and study cards can use the actual document content whenever a readable page image exists.
+- Chat models run through OpenRouter when `AI_PROVIDER=openrouter` and `OPENROUTER_API_KEY` is configured.
+- PDF ingestion must remain operational without `OPENAI_API_KEY`; when OpenAI embeddings are unavailable, Mentora uses local 1536-dimension search embeddings so documents can still become ready and support grounded retrieval.
+- The tutor must answer coherently from uploaded sources, cite evidence, and avoid duplicated or generic fallback responses.
+- Mentora must ask learning preference questions after account creation/sign-in so each student receives a customized study experience.
+- Learning preference questions must use required dropdown/select options instead of free text so students cannot skip the profile or enter unusable answers.
+- Mentora never diagnoses, labels, or categorizes students clinically. The learning profile only captures preferences and support needs such as pacing, examples, focus support, and practice style, including neurodivergent-friendly options without naming or assigning labels.
 
-Every user must log in before accessing the study workspace. Mentora must never expose one user's projects, tools, uploaded files, chat history, study plans, generated practice material, or usage data to another user.
+## Functional Scope
 
-## Product Vision
+- Account creation, login, logout, and profile loading through Supabase Auth.
+- Private tenant/profile creation for every new user.
+- Per-user study spaces with strict row-level isolation.
+- Private PDF upload to Supabase Storage.
+- Server-side PDF validation, text extraction, OCR/vision fallback, content-quality checks, chunking, OpenAI or local embeddings, pgvector indexing, and ready/failed document status.
+- Source-grounded chat through the selected AI provider with citations from uploaded material.
+- Study tools from ready sources: quizzes, flashcards, and APA-style summaries.
+- Learning preference profile with questions for goal, session length, explanation style, focus support, and practice style.
+- Premium, light, minimalistic student-facing UI for university workflows.
+- Admin KPI and user management surfaces restricted to admin role.
 
-Mentora is a Peru-first, Latin America-ready, bilingual AI study platform for college, university, institute, and later school students. It helps students upload academic materials, extract knowledge, ask a grounded AI tutor questions, generate summaries, quizzes, flashcards, study plans, and eventually APA-style academic outputs.
+## Learning Profile Requirements
 
-Mentora must be designed as a multi-tenant SaaS product from the beginning so individual students can use it and institutions can later purchase managed access.
+The first-run profile asks how the student prefers to learn through required dropdown selections. Required fields include learning goal, ideal session length, explanation style, focus support, practice style, and study preference. Free-text answers are avoided in this first-run profile to reduce skipped, ambiguous, or unusable responses.
 
-## Core Student Loop
+This is not a psychological test and must never be presented as one. The profile is an academic learning-preference model accurate enough to help Mentora adapt explanations, study tools, pacing, examples, quiz style, flashcards, summaries, review rhythm, and focus support. The UI copy must make it explicit that Mentora does not diagnose or label students.
 
-The following workflow must remain operational at all times:
+The saved `profiles.learning_profile` must be injected into tutor prompts and study-tool generation prompts so chat answers, quizzes, flashcards, and summaries adapt to the student instead of remaining generic.
 
-1. Log in with an authenticated user account.
-2. Create or select a study space owned by that user.
-3. Upload or paste academic material into that user's study space.
-4. Extract readable text from uploaded files.
-5. Chunk and persist the source material under the owning user.
-6. Generate summaries, flashcards, quizzes, and study plans from the user's own material.
-7. Ask the AI tutor questions grounded in the uploaded source material for the selected user-owned study space.
-8. Receive coherent, non-duplicated answers with source citations when relevant context exists.
-9. Persist chat history, documents, generated tools, and usage events under the authenticated user.
+## Student-first UI/UX Design System
 
-## AI Tutor Quality Requirements
+The active design source is `DESIGN.md` in the Mentora project folder. It supersedes older Quizlet-style and broad visual notes so there is no confusion.
 
-The tutor must not return generic answers when relevant uploaded material exists.
+Visual direction: Mentora uses the active light premium EdTech design in `DESIGN.md`, adapted from the June 9 UI/UX mockups. The product should feel like a polished LATAM university study platform: soft blue/violet/cyan gradients, rounded glass cards, friendly AI mascot visuals, strong CTA buttons, student dashboard widgets, and clear study workflows. The old cinematic monochrome direction is no longer active.
 
-The tutor must:
+First-page requirement: the landing page must look like a real premium product page, not an app shell. It includes navbar, "Estudia mejor con IA" hero, laptop/product mockup, floating upload/tutor/flashcard/progress cards, university proof strip, six feature cards, "Así funciona Mentora" steps, testimonials, account access, and footer. The login/create-account area remains on the public page, but no private study data or tools are accessible until authentication.
 
-- Retrieve relevant source chunks from the selected study space.
-- Handle Spanish and English queries, including accent-insensitive matching.
-- Treat uploaded content as untrusted evidence, not system instructions.
-- Cite uploaded sources in grounded answers.
-- Say clearly when no relevant uploaded source was found.
-- Avoid duplicated assistant responses in the chat UI.
-- Redirect cheating or academic-bypass requests into active learning.
-- Use warm, practical, step-by-step language suitable for university students.
+UI principles: Preserve existing functionality, data contracts, OpenRouter model gating, upload behavior, privacy rules, and learning profile requirements. Use youthful but trustworthy visuals: rounded cards, soft shadows, gradient CTAs, colorful icon containers, clear progress states, and student-friendly Spanish copy.
 
-## AI Gateway and Model Routing
+Animation principles: Use Framer Motion and lightweight CSS animations for hero entrance, floating cards, hover lift, progress polish, and onboarding microinteractions. Respect reduced-motion preferences.
 
-Mentora must use a provider-agnostic model-router architecture.
+Component style guidelines: Cards use 24-32px radius, white/glass surfaces, soft indigo borders, and generous padding. Buttons use blue/violet/cyan gradients. Inputs are rounded, readable, and keyboard friendly. The private workspace should align with the same premium light dashboard language.
 
-The router must support:
+Recommended libraries: Continue using the existing stack: Tailwind CSS, Framer Motion, and Lucide React. Do not add heavy animation, 3D, Aceternity UI, or Magic UI unless a future requirement clearly justifies a lightweight isolated component.
 
-- Free, low-cost, open-weight, and premium LLM providers.
-- OpenRouter-compatible chat models.
-- Free-model selection without login.
-- Paid-model selection that opens a login/account modal before use.
-- Local fallback behavior that still gives source-grounded answers when external providers are unavailable.
-- Usage logging for provider, model, token estimates, and cost estimates when available.
+Accessibility and responsive rules: Maintain strong contrast, real labels, keyboard-accessible buttons, visible focus states, readable mobile layouts, and responsive spacing for desktop, tablet, and phone.
 
-## Functional Modules
+Fun but not childish: Use energy through cinematic typography, product visuals, progress cues, and elegant motion. Avoid cartoonish visuals, noisy decoration, over-saturated UI gradients, or language that feels unserious for college-level learners.
 
-### Authentication and User Isolation
+## Deployment Readiness
 
-Every student, institution user, and administrator must authenticate before using Mentora.
-
-User isolation is mandatory:
-
-- A student can only see and operate on their own study spaces, documents, chunks, chats, tools, study plans, and usage history.
-- API routes must derive ownership from the authenticated session, not from client-provided user IDs.
-- Study-space, document, chat, and tool routes must reject access to records not owned by the current user.
-- Future institutional tenancy must preserve the same rule with tenant-level isolation and role-based access.
-
-### Study Spaces
-
-Study spaces isolate documents, chunks, tools, chats, and study plans by course context.
-
-### Material Upload
-
-Upload must support PDF and text-style files where possible, plus manual text input. The app must validate type, size, filenames, readable text length, and extraction failures.
-
-### Knowledge Processing
-
-Uploaded material must be normalized, chunked, persisted, summarized, and made available for retrieval.
-
-### Practice Tools
-
-Flashcards, quizzes, summaries, and study plans must be generated from uploaded material, not static mock data.
-
-### Chat
-
-Chat must use the selected study space, retrieve relevant context server-side, call the selected model when available, and persist user/assistant turns.
-
-### Admin and Security
-
-Admin endpoints and pages must be accessible only to authenticated admin users.
-
-The admin-only page must include:
-
-- KPI overview for users, study spaces, uploaded documents, chat turns, usage events, and active courses.
-- A user counter.
-- User administration controls for viewing users and managing status/role.
-- No access for normal student users.
-
-API routes must validate payloads, bound input sizes, avoid trusting client-supplied context, protect against prompt injection through uploaded sources, and enforce authenticated ownership checks.
-
-## UX Direction
-
-Mentora should feel premium, clear, light, minimalistic, and attractive for college and university students.
-
-The UI should prioritize:
-
-- Fast scanning.
-- Clear course context.
-- Clean white/light surfaces.
-- Teal, cyan, and warm accent colors.
-- Strong typography without negative letter spacing.
-- Stable layouts with no overlapping text.
-- Functional controls rather than decorative placeholders.
-- A polished workspace experience instead of a marketing-only landing page.
-
-## Delivery Standard
-
-For every meaningful change, run the appropriate verification:
-
-- TypeScript typecheck.
-- Lint.
-- Production build.
-- Live workflow smoke tests for study-space creation, upload, tutor chat, and study-plan generation.
-
-Mentora is considered healthy only when the core student loop works end to end.
+Before deployment, the app must pass typecheck, lint, production build, and responsive QA. Environment variables for Supabase and the configured chat provider must be present. OpenAI embeddings are optional; they improve semantic retrieval, while local search embeddings keep the app functional when OpenAI is not configured.
