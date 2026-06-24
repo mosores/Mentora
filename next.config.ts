@@ -46,6 +46,9 @@ const contentSecurityPolicy = [
 const nextConfig: NextConfig = {
   poweredByHeader: false,
   productionBrowserSourceMaps: false,
+  turbopack: {
+    root: process.cwd(),
+  },
   async headers() {
     return [
       {

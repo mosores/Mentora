@@ -151,6 +151,32 @@ function reportClientError(context: string, error: unknown) {
   console.warn(`[Mentora] ${context}: ${message}`);
 }
 
+function resolveAuthErrorMessage(
+  error: { message?: string; code?: string; status?: number },
+  t: Record<string, string>,
+) {
+  const code = String(error.code ?? "").toLowerCase();
+  const message = String(error.message ?? "").toLowerCase();
+
+  if (code === "email_not_confirmed" || message.includes("email not confirmed")) {
+    return t.emailNotConfirmed;
+  }
+
+  if (
+    code === "user_already_registered" ||
+    message.includes("user already registered") ||
+    message.includes("already been registered")
+  ) {
+    return t.userAlreadyRegistered;
+  }
+
+  if (message.includes("invalid login credentials")) {
+    return t.invalidCredentials;
+  }
+
+  return t.authError;
+}
+
 async function getAccessToken(client: SupabaseClient) {
   try {
     return (await client.auth.getSession()).data.session?.access_token ?? null;
@@ -426,8 +452,10 @@ export function MentoraApp() {
             locale={locale}
             onChange={setProfileDraft}
             onSave={saveProfile}
+            onSignOut={() => supabase.auth.signOut()}
             setLocale={setLocale}
             t={t}
+            userEmail={profile?.email ?? session.user.email ?? ""}
           />
         </div>
       </main>
@@ -543,16 +571,15 @@ export function MentoraApp() {
                 {activeView === "tutor" && (
                   <MotionView key="tutor">
                     <TutorStudio
-                      activeSpace={activeSpace}
                       busy={busy}
-                      disabled={!activeSpace || busy === "chat" || !hasReadySources}
+                      disabled={busy === "chat"}
                       loading={busy === "chat"}
                       messages={messages}
                       models={models}
                       openRouterConnected={openRouterConnected}
                       openRouterServerConnected={openRouterServerConnected}
                       onSelectModel={handleModelSelect}
-                      onSend={(message) => activeSpace && askTutor(activeSpace.id, message)}
+                      onSend={sendTutorMessage}
                       onUpload={uploadDocument}
                       readyDocuments={readyDocuments}
                       selectedModel={selectedModel}
@@ -701,6 +728,15 @@ export function MentoraApp() {
 
     await loadWorkspace();
     return createdSpace?.id ?? null;
+  }
+
+  async function sendTutorMessage(message: string) {
+    const studySpaceId = activeSpace?.id ?? (await createStudySpace(t.personalWorkspace));
+    if (!studySpaceId) {
+      return;
+    }
+
+    await askTutor(studySpaceId, message);
   }
 
   async function uploadDocument(file: File) {
@@ -878,9 +914,22 @@ export function MentoraApp() {
     }
 
     if (!response.ok) {
-      const payload = await response.json().catch(() => ({}));
-      setError(payload.error ?? "Tutor request failed.");
-      setMessages((current) => current.filter((item) => item.id !== assistantId));
+      const payload = (await response.json().catch(() => ({}))) as { error?: string };
+      const errorMessage = payload.error ?? "Tutor request failed.";
+      setError(errorMessage);
+      setMessages((current) =>
+        current.map((item) =>
+          item.id === assistantId
+            ? {
+                ...item,
+                content:
+                  locale === "es"
+                    ? `No pude responder: ${errorMessage}`
+                    : `I could not reply: ${errorMessage}`,
+              }
+            : item,
+        ),
+      );
       setBusy(null);
       window.clearTimeout(chatTimeout);
       return;
@@ -1135,8 +1184,7 @@ function AuthScreen({
 
     setBusy(false);
     if (result.error) {
-      const isInvalidCredentials = result.error.message.toLowerCase().includes("invalid login credentials");
-      setMessage(isInvalidCredentials ? t.invalidCredentials : t.authError);
+      setMessage(resolveAuthErrorMessage(result.error, t));
     } else if (mode === "signup" && !result.data.session) {
       setMessage(t.checkEmail);
     }
@@ -1851,10 +1899,10 @@ function RealStudentDashboard({
     },
     {
       id: "review",
-      title: readyDocuments.length > 0 ? t.askFirstQuestion : t.waitingForSources,
-      detail: readyDocuments.length > 0 ? `${readyDocuments.length} ${t.sourcesReady}` : t.noReadyDocsText,
+      title: t.askFirstQuestion,
+      detail: readyDocuments.length > 0 ? `${readyDocuments.length} ${t.sourcesReady}` : t.askFirstQuestionText,
       icon: <MessageSquareText size={17} />,
-      view: readyDocuments.length > 0 ? ("tutor" as const) : ("documents" as const),
+      view: "tutor" as const,
     },
     {
       id: "tools",
@@ -2025,7 +2073,6 @@ function RealStudentDashboard({
 }
 
 function TutorStudio({
-  activeSpace,
   busy,
   disabled,
   loading,
@@ -2040,7 +2087,6 @@ function TutorStudio({
   selectedModel,
   t,
 }: {
-  activeSpace: StudySpace | null;
   busy: string | null;
   disabled: boolean;
   loading: boolean;
@@ -2055,7 +2101,8 @@ function TutorStudio({
   selectedModel: string;
   t: Record<string, string>;
 }) {
-  const disabledReason = !activeSpace ? t.noSpaceDescription : readyDocuments.length === 0 ? t.noSources : "";
+  const disabledReason = readyDocuments.length === 0 ? t.chatSourcesHint : "";
+  const needsSources = readyDocuments.length === 0;
 
   return (
     <div className="student-tutor-workspace">
@@ -2078,7 +2125,13 @@ function TutorStudio({
               t={t}
               onSelect={onSelectModel}
             />
-            <UploadControl disabled={busy === "upload"} loading={busy === "upload"} label={t.uploadPdf} onUpload={onUpload} />
+            <UploadControl
+              disabled={busy === "upload"}
+              highlight={needsSources}
+              loading={busy === "upload"}
+              label={t.uploadPdf}
+              onUpload={onUpload}
+            />
             <span className={`status-pill ${readyDocuments.length > 0 ? "is-ready" : "is-muted"}`}>
               <span className="h-2 w-2 rounded-full bg-current" />
               {readyDocuments.length > 0 ? t.sourcesReady : t.waitingForSources}
@@ -2091,8 +2144,8 @@ function TutorStudio({
             {messages.length === 0 ? (
               <EmptyState
                 icon={<BrainCircuit size={30} />}
-                title={readyDocuments.length > 0 ? t.askFirstQuestion : t.noSourcesTitle}
-                text={readyDocuments.length > 0 ? t.askFirstQuestionText : t.noSources}
+                title={t.askFirstQuestion}
+                text={t.askFirstQuestionText}
               />
             ) : (
               <div className="space-y-3">
@@ -2104,7 +2157,11 @@ function TutorStudio({
           </div>
         </div>
 
-        {disabledReason && <p className="px-4 pb-2 text-xs leading-5 text-amber-100/80">{disabledReason}</p>}
+        {disabledReason && (
+          <div className="mx-4 mb-2 rounded-xl border border-amber-300/30 bg-amber-400/10 px-4 py-3 text-sm leading-6 text-amber-50">
+            {disabledReason}
+          </div>
+        )}
         <ChatInput
           disabled={disabled}
           loading={loading}
@@ -2279,16 +2336,20 @@ function LearningProfileOnboarding({
   locale,
   onChange,
   onSave,
+  onSignOut,
   setLocale,
   t,
+  userEmail,
 }: {
   busy: boolean;
   draft: LearningProfileDraft;
   locale: Locale;
   onChange: (draft: LearningProfileDraft) => void;
   onSave: () => void;
+  onSignOut: () => void;
   setLocale: (locale: Locale) => void;
   t: Record<string, string>;
+  userEmail: string;
 }) {
   const options = learningProfileOptions(t);
   const complete = isLearningProfileComplete(draft);
@@ -2312,15 +2373,21 @@ function LearningProfileOnboarding({
           <div className="brand-mark h-14 w-14">
             <BrainCircuit size={24} />
           </div>
-          <button
-            className="icon-button"
-            aria-label={t.switchLanguage}
-            onClick={() => setLocale(locale === "es" ? "en" : "es")}
-            type="button"
-          >
-            <Languages size={18} />
-            <span className="text-xs font-bold">{locale.toUpperCase()}</span>
-          </button>
+          <div className="flex items-center gap-2">
+            <button
+              className="icon-button"
+              aria-label={t.switchLanguage}
+              onClick={() => setLocale(locale === "es" ? "en" : "es")}
+              type="button"
+            >
+              <Languages size={18} />
+              <span className="text-xs font-bold">{locale.toUpperCase()}</span>
+            </button>
+            <button className="secondary-button h-10 px-3 text-xs" onClick={onSignOut} type="button">
+              <LogOut size={16} />
+              {t.signOut}
+            </button>
+          </div>
         </div>
         <span className="onboarding-step-badge">
           <Sparkles size={14} />
@@ -2350,8 +2417,14 @@ function LearningProfileOnboarding({
 
       <section className="onboarding-form-panel">
         <div className="mb-5">
-          <h2 className="text-2xl font-semibold text-white">{t.onboardingFormTitle}</h2>
+          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-300">
+            {t.onboardingLoggedInAs} {userEmail}
+          </p>
+          <h2 className="mt-2 text-2xl font-semibold text-white">{t.onboardingFormTitle}</h2>
           <p className="mt-2 text-sm leading-6 text-slate-400">{t.onboardingFormText}</p>
+          <p className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm leading-6 text-slate-300">
+            {t.onboardingContinueHint}
+          </p>
         </div>
         <div className="grid gap-4">
           <SelectField
@@ -2795,19 +2868,21 @@ function CreateSpaceButton({
 
 function UploadControl({
   disabled,
+  highlight = false,
   loading,
   label,
   onUpload,
   wide = false,
 }: {
   disabled: boolean;
+  highlight?: boolean;
   loading: boolean;
   label: string;
   onUpload: (file: File) => void;
   wide?: boolean;
 }) {
   return (
-    <label className={`upload-button ${wide ? "w-full justify-center" : ""}`}>
+    <label className={`upload-button ${wide ? "w-full justify-center" : ""} ${highlight ? "is-priority" : ""}`}>
       {loading ? <Loader2 className="animate-spin" size={17} /> : <Upload size={17} />}
       {label}
       <input

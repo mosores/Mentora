@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { generateGroundedText, streamGroundedText } from "@/lib/ai/gateway";
 import { isFreeOpenRouterModel } from "@/lib/ai/models";
-import { buildGroundedPrompt, tutorSystemPrompt } from "@/lib/ai/prompts";
+import { buildGeneralTutorPrompt, buildGroundedPrompt, generalTutorSystemPrompt, tutorSystemPrompt } from "@/lib/ai/prompts";
 import { retrieveCitations } from "@/lib/rag/search";
 import { getAuthedProfile } from "@/lib/supabase/service";
 import {
@@ -19,7 +19,7 @@ export const runtime = "nodejs";
 
 const chatSchema = z.object({
   studySpaceId: z.string().uuid(),
-  message: z.string().trim().min(3).max(4000),
+  message: z.string().trim().min(1).max(4000),
   locale: z.enum(["es", "en"]).default("es"),
   model: z.string().trim().min(1).max(160).optional(),
   openRouterApiKey: z.string().trim().min(20).max(512).optional(),
@@ -54,24 +54,9 @@ export async function POST(request: Request) {
       query: body.message,
     });
 
-  if (citations.length === 0) {
-    const answer =
-        body.locale === "es"
-          ? "No encontre fuentes suficientes en los documentos listos de este espacio. Sube o procesa un PDF antes de preguntar."
-          : "I did not find enough source material in the ready documents for this space. Upload or process a PDF before asking.";
+    const isGeneralChat = citations.length === 0;
 
-    return new Response(
-      new ReadableStream({
-        start(controller) {
-          controller.enqueue(encodeEvent("done", { answer, citations: [] }));
-          controller.close();
-        },
-      }),
-      { headers: streamHeaders("application/x-ndjson; charset=utf-8") },
-    );
-  }
-
-  const { data: conversation, error: conversationError } = await service
+    const { data: conversation, error: conversationError } = await service
     .from("conversations")
     .insert({
       tenant_id: profile.tenant_id,
@@ -101,8 +86,10 @@ export async function POST(request: Request) {
   const aiRequest = {
     task: "tutor_chat",
     priority: "cost",
-    system: tutorSystemPrompt,
-    prompt: buildGroundedPrompt(body.message, citations, body.locale, profile.learning_profile),
+    system: isGeneralChat ? generalTutorSystemPrompt : tutorSystemPrompt,
+    prompt: isGeneralChat
+      ? buildGeneralTutorPrompt(body.message, body.locale, profile.learning_profile)
+      : buildGroundedPrompt(body.message, citations, body.locale, profile.learning_profile),
     model: body.model,
     openRouterApiKey: body.openRouterApiKey,
   } as const;

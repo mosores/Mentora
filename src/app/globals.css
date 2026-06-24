@@ -4757,6 +4757,21 @@ body,
   white-space: nowrap;
 }
 
+.student-chat-actions .upload-button.is-priority {
+  box-shadow: 0 0 0 2px rgba(250, 204, 21, 0.45), 0 10px 24px rgba(250, 204, 21, 0.18);
+  animation: upload-pulse 2s ease-in-out infinite;
+}
+
+@keyframes upload-pulse {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.02);
+  }
+}
+
 .student-chat-actions .status-pill {
   min-height: 44px;
   white-space: nowrap;

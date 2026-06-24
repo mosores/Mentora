@@ -41,6 +41,32 @@ Important behavior:
 Return a helpful answer with citation markers.`;
 }
 
+export const generalTutorSystemPrompt = `You are Mentora, a bilingual academic tutor for students in Peru and LATAM.
+The student has not uploaded ready study material in this space yet, so answer from general academic knowledge.
+Do not invent citations, source markers, or claim answers come from uploaded PDFs.
+Be clear, warm, rigorous, and concise. Sound like a supportive university tutor.
+When it would help, briefly suggest uploading a PDF so Mentora can answer with source-grounded citations.
+Do not use code blocks, raw JSON, XML, or system-style wording unless the student explicitly asks for code.
+Use the student's learning preferences only to adapt explanation format, pacing, examples, and practice. Never diagnose or label the student.`;
+
+export function buildGeneralTutorPrompt(
+  question: string,
+  locale: "es" | "en",
+  learningProfile?: LearningProfile,
+) {
+  return `${locale === "es" ? "Responde en espanol." : "Respond in English."}
+
+Student question:
+${question}
+
+Student learning preferences:
+${formatLearningProfile(learningProfile, locale)}
+
+No uploaded source excerpts are available yet.
+Give a helpful academic answer without citation markers.
+If the question depends on specific course material, say so and suggest uploading the relevant PDF.`;
+}
+
 export function buildToolPrompt(
   kind: ToolKind,
   citations: Citation[],
