@@ -1,0 +1,155 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserRole {
+  student
+  admin
+}
+
+enum UserStatus {
+  active
+  suspended
+}
+
+enum StudyLanguage {
+  en
+  es
+  bilingual
+}
+
+enum ChatRole {
+  user
+  assistant
+}
+
+model User {
+  id           String       @id
+  name         String
+  email        String       @unique
+  passwordHash String
+  role         UserRole     @default(student)
+  status       UserStatus   @default(active)
+  createdAt    DateTime     @default(now())
+  sessions     Session[]
+  spaces       StudySpace[]
+  documents    Document[]
+  chunks       Chunk[]
+  tools        GeneratedTool[]
+  chatTurns    ChatTurn[]
+  usageEvents  UsageEvent[]
+}
+
+model Session {
+  id        String   @id
+  userId    String
+  tokenHash String   @unique
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model StudySpace {
+  id        String        @id
+  userId    String
+  title     String
+  course    String
+  language  StudyLanguage @default(bilingual)
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
+  user      User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  documents Document[]
+  chunks    Chunk[]
+  tools     GeneratedTool[]
+  chatTurns ChatTurn[]
+  usageEvents UsageEvent[]
+
+  @@index([userId])
+}
+
+model Document {
+  id         String     @id
+  userId     String
+  spaceId    String
+  name       String
+  mimeType   String
+  text       String
+  summary    String
+  chunkCount Int
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space      StudySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  chunks     Chunk[]
+
+  @@index([userId, spaceId])
+}
+
+model Chunk {
+  id         String     @id
+  userId     String
+  spaceId    String
+  documentId String
+  sourceName String
+  chunkIndex Int
+  text       String
+  keywords   String[]
+  createdAt  DateTime   @default(now())
+  user       User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space      StudySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+  document   Document   @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@index([userId, spaceId])
+  @@index([documentId])
+}
+
+model GeneratedTool {
+  id        String     @id
+  userId    String
+  spaceId   String
+  type      String
+  title     String
+  content   Json
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space     StudySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, spaceId])
+}
+
+model ChatTurn {
+  id        String     @id
+  userId    String
+  spaceId   String
+  role      ChatRole
+  content   String
+  citations Json
+  createdAt DateTime   @default(now())
+  user      User       @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space     StudySpace @relation(fields: [spaceId], references: [id], onDelete: Cascade)
+
+  @@index([userId, spaceId])
+}
+
+model UsageEvent {
+  id              String      @id
+  userId          String
+  spaceId         String?
+  type            String
+  provider        String
+  model           String
+  tokenEstimate   Int
+  costEstimateUsd Decimal     @default(0)
+  createdAt       DateTime    @default(now())
+  user            User        @relation(fields: [userId], references: [id], onDelete: Cascade)
+  space           StudySpace? @relation(fields: [spaceId], references: [id], onDelete: SetNull)
+
+  @@index([userId])
+  @@index([spaceId])
+}
