@@ -377,7 +377,14 @@ export function MentoraApp() {
 
     supabase.auth
       .getSession()
-      .then(({ data }) => setSession(data.session))
+      .then(({ data, error }) => {
+        if (error) {
+          void supabase.auth.signOut();
+          setSession(null);
+        } else {
+          setSession(data.session);
+        }
+      })
       .catch((caught) => {
         reportClientError("Session initialization failed", caught);
         setError(t.authNetworkError);
