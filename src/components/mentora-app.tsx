@@ -491,7 +491,7 @@ export function MentoraApp() {
   if (needsLearningProfile) {
     return (
       <main className="mentora-shell onboarding-stage min-h-screen p-3 text-slate-50 sm:p-5">
-        <div className="mx-auto flex min-h-screen w-full max-w-6xl items-center justify-center">
+        <div className="mx-auto flex min-h-screen w-full max-w-[1440px] items-center justify-center">
           <LearningProfileOnboarding
             busy={busy === "profile"}
             draft={profileDraft}
@@ -558,7 +558,10 @@ export function MentoraApp() {
 
         <section className="student-main-scroll">
           <header className="student-topbar">
-            <div />
+            <div className="student-topbar-context">
+              <span>{activeSpace?.name ?? t.dashboard}</span>
+              <strong>{activeView === "home" ? t.dashboard : t[`${activeView}Title`]}</strong>
+            </div>
             <div className="flex items-center gap-2">
               <button className="icon-button" aria-label={t.switchLanguage} onClick={() => setLocale(locale === "es" ? "en" : "es")}>
                 <Globe2 size={18} />
@@ -1381,7 +1384,7 @@ function AuthScreen({
 function MentoraLogo() {
   return (
     <a className="mentora-logo" href="#top" aria-label="Mentora">
-      <span className="mentora-logo-mark">M</span>
+      <span className="mentora-logo-mark" aria-hidden="true" />
       <span>Mentora</span>
     </a>
   );
@@ -1755,7 +1758,7 @@ function NavigationRail({
         </p>
       </div>
 
-      <div className="mb-3 flex items-center justify-between gap-2">
+      <div className="student-spaces-header mb-3 flex items-center justify-between gap-2">
         <h2 className="text-xs font-bold uppercase text-slate-500">{t.spaces}</h2>
         <CreateSpaceButton busy={busy === "space"} label={t.newSpace} onCreate={onCreate} t={t} />
       </div>
@@ -2005,96 +2008,102 @@ function RealStudentDashboard({
       </section>
 
       <section className="dashboard-card-grid">
-        <article className="dashboard-widget">
-          <header><h3>{t.myCourses}</h3><button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button></header>
-          <div className="course-list">
-            {courseRows.map(({ name, value, tone, detail }) => (
-              <div key={name} className={`course-row tone-${tone}`}>
-                <span><BookOpen size={16} /></span>
-                <strong>{name}</strong>
-                <div><i style={{ width: `${value}%` }} /></div>
-                <em>{detail}</em>
-              </div>
-            ))}
-            {courseRows.length === 0 && (
-              <EmptyState compact icon={<FolderOpen size={18} />} title={t.noSpaceTitle} text={t.noSpaceDescription} />
-            )}
-          </div>
-        </article>
+        <div className="dashboard-column">
+          <article className="dashboard-widget dashboard-widget-space">
+            <header><h3>{t.myCourses}</h3><button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button></header>
+            <div className="course-list">
+              {courseRows.map(({ name, value, tone, detail }) => (
+                <div key={name} className={`course-row tone-${tone}`}>
+                  <span><BookOpen size={16} /></span>
+                  <strong>{name}</strong>
+                  <div><i style={{ width: `${value}%` }} /></div>
+                  <em>{detail}</em>
+                </div>
+              ))}
+              {courseRows.length === 0 && (
+                <EmptyState compact icon={<FolderOpen size={18} />} title={t.noSpaceTitle} text={t.noSpaceDescription} />
+              )}
+            </div>
+          </article>
 
-        <article className="dashboard-widget">
-          <header><h3>{t.recentMaterials}</h3><button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button></header>
-          <div className="recent-list">
-            {materials.map((document) => (
-              <button key={document.id} onClick={() => onSelectView("documents")} type="button">
-                <FileText size={17} />
-                <span>{document.file_name}</span>
-                <small>{document.processing_status === "ready" ? t.ready : t.processing}</small>
-              </button>
-            ))}
-            {materials.length === 0 && (
-              <EmptyState compact icon={<FileText size={18} />} title={t.emptyLibraryTitle} text={t.emptyLibraryText} />
-            )}
-          </div>
-        </article>
-
-        <article className="dashboard-widget">
-          <header><h3>{t.upcomingExams}</h3><button onClick={() => onSelectView("tools")} type="button">{t.viewCalendar}</button></header>
-          <div className="exam-list">
-            {studyPlan.map((item, index) => (
-              <div key={item.id}>
-                <span>{index + 1}</span>
-                <strong>{item.title}</strong>
-                <em>{item.detail}</em>
-                <button aria-label={item.title} onClick={() => onSelectView(item.view)} type="button">
-                  {item.icon}
+          <article className="dashboard-widget dashboard-widget-actions">
+            <header><h3>{t.recommendedSessions}</h3><button onClick={() => onSelectView("tools")} type="button">{t.viewAll}</button></header>
+            <div className="session-list">
+              {recommendedSessions.map((session) => (
+                <button key={session.title} className={`tone-${session.tone}`} onClick={() => onSelectView(session.view)} type="button">
+                  <Sparkles size={17} />
+                  <span>{session.title}</span>
+                  <small>{session.detail}</small>
+                  <PlayCircle size={18} />
                 </button>
-              </div>
-            ))}
-          </div>
-        </article>
+              ))}
+            </div>
+          </article>
+        </div>
 
-        <article className="dashboard-widget">
-          <header><h3>{t.recommendedSessions}</h3><button onClick={() => onSelectView("tools")} type="button">{t.viewAll}</button></header>
-          <div className="session-list">
-            {recommendedSessions.map((session) => (
-              <button key={session.title} className={`tone-${session.tone}`} onClick={() => onSelectView(session.view)} type="button">
-                <Sparkles size={17} />
-                <span>{session.title}</span>
-                <small>{session.detail}</small>
-                <PlayCircle size={18} />
-              </button>
-            ))}
-          </div>
-        </article>
+        <div className="dashboard-column">
+          <article className="dashboard-widget dashboard-widget-materials">
+            <header><h3>{t.recentMaterials}</h3><button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button></header>
+            <div className="recent-list">
+              {materials.map((document) => (
+                <button key={document.id} onClick={() => onSelectView("documents")} type="button">
+                  <FileText size={17} />
+                  <span>{document.file_name}</span>
+                  <small>{document.processing_status === "ready" ? t.ready : t.processing}</small>
+                </button>
+              ))}
+              {materials.length === 0 && (
+                <EmptyState compact icon={<FileText size={18} />} title={t.emptyLibraryTitle} text={t.emptyLibraryText} />
+              )}
+            </div>
+          </article>
 
-        <article className="dashboard-widget tutor-recommendation-card">
-          <header><h3>{t.tutorRecommendations}</h3></header>
-          <MentoraMascot />
-          <ul>
-            {recommendations.map((recommendation) => (
-              <li key={recommendation}>{recommendation}</li>
-            ))}
-          </ul>
-          <button onClick={() => onSelectView("tutor")} type="button">{t.viewMoreRecommendations}</button>
-        </article>
+          <article className="dashboard-widget dashboard-widget-tutor tutor-recommendation-card">
+            <header><h3>{t.tutorRecommendations}</h3></header>
+            <MentoraMascot />
+            <ul>
+              {recommendations.map((recommendation) => (
+                <li key={recommendation}>{recommendation}</li>
+              ))}
+            </ul>
+            <button onClick={() => onSelectView("tutor")} type="button">{t.viewMoreRecommendations}</button>
+          </article>
+        </div>
 
-        <article className="dashboard-widget">
-          <header><h3>{t.quickTools}</h3></header>
-          <div className="quick-tools-grid">
-            {[
-              [t.createSummary, <FileText key="summary" size={20} />, "tools"],
-              [t.createFlashcards, <Layers3 key="cards" size={20} />, "tools"],
-              [t.generateQuiz, <ClipboardList key="quiz" size={20} />, "tools"],
-              [t.uploadLibrary, <Upload key="upload" size={20} />, "documents"],
-            ].map(([label, icon, view]) => (
-              <button key={String(label)} onClick={() => onSelectView(view as AppView)} type="button">
-                {icon}
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </article>
+        <div className="dashboard-column dashboard-column-plan">
+          <article className="dashboard-widget dashboard-widget-plan">
+            <header><h3>{t.upcomingExams}</h3><button onClick={() => onSelectView("tools")} type="button">{t.viewCalendar}</button></header>
+            <div className="exam-list">
+              {studyPlan.map((item, index) => (
+                <div key={item.id}>
+                  <span>{index + 1}</span>
+                  <strong>{item.title}</strong>
+                  <em>{item.detail}</em>
+                  <button aria-label={item.title} onClick={() => onSelectView(item.view)} type="button">
+                    {item.icon}
+                  </button>
+                </div>
+              ))}
+            </div>
+          </article>
+
+          <article className="dashboard-widget dashboard-widget-tools">
+            <header><h3>{t.quickTools}</h3></header>
+            <div className="quick-tools-grid">
+              {[
+                [t.createSummary, <FileText key="summary" size={20} />, "tools"],
+                [t.createFlashcards, <Layers3 key="cards" size={20} />, "tools"],
+                [t.generateQuiz, <ClipboardList key="quiz" size={20} />, "tools"],
+                [t.uploadLibrary, <Upload key="upload" size={20} />, "documents"],
+              ].map(([label, icon, view]) => (
+                <button key={String(label)} onClick={() => onSelectView(view as AppView)} type="button">
+                  {icon}
+                  <span>{label}</span>
+                </button>
+              ))}
+            </div>
+          </article>
+        </div>
       </section>
 
       <section className="materials-showcase">
@@ -2446,12 +2455,70 @@ function LearningProfileOnboarding({
 }) {
   const options = learningProfileOptions(t);
   const complete = isLearningProfileComplete(draft);
-  const progress = Math.round((Object.values(draft).filter((value) => value.trim().length > 0).length / 6) * 100);
-  const miniCards = [
-    { icon: <BrainCircuit size={17} />, label: t.onboardingMiniTutor },
-    { icon: <Layers3 size={17} />, label: t.onboardingMiniFlashcards },
-    { icon: <ClipboardList size={17} />, label: t.onboardingMiniExam },
-    { icon: <FileText size={17} />, label: t.onboardingMiniSummaries },
+  const selectedCount = Object.values(draft).filter((value) => value.trim().length > 0).length;
+  const progress = Math.round((selectedCount / 6) * 100);
+  const setupLabels =
+    locale === "es"
+      ? ["Crear cuenta", "Tu perfil", "Como te gusta aprender", "Configura tu carrera", "Listo"]
+      : ["Create account", "Your profile", "How you learn", "Study context", "Done"];
+  const optionGroups: Array<{
+    key: LearningProfileOptionKey;
+    label: string;
+    description: string;
+    icon: ReactNode;
+    options: string[];
+    featured?: boolean;
+  }> = [
+    {
+      key: "explanationStyle",
+      label: t.explanationStyle,
+      description: locale === "es" ? "Elige el formato que mejor te ayuda a entender." : "Choose the format that helps you understand fastest.",
+      icon: <BrainCircuit size={18} />,
+      options: options.explanationStyle,
+      featured: true,
+    },
+    {
+      key: "practiceStyle",
+      label: t.practiceStyle,
+      description: locale === "es" ? "Define como quieres practicar despues de estudiar." : "Define how you want to practice after studying.",
+      icon: <ClipboardList size={18} />,
+      options: options.practiceStyle,
+      featured: true,
+    },
+    {
+      key: "learningGoal",
+      label: t.learningGoal,
+      description: locale === "es" ? "Tu meta principal para las proximas sesiones." : "Your main goal for the next sessions.",
+      icon: <GraduationCap size={18} />,
+      options: options.learningGoal,
+    },
+    {
+      key: "sessionLength",
+      label: t.sessionLength,
+      description: locale === "es" ? "Ajusta el ritmo a tu energia diaria." : "Match the pace to your daily energy.",
+      icon: <Clock3 size={18} />,
+      options: options.sessionLength,
+    },
+    {
+      key: "focusSupport",
+      label: t.focusSupport,
+      description: locale === "es" ? "Dinos que te ayuda a mantener constancia." : "Tell us what keeps you consistent.",
+      icon: <Flame size={18} />,
+      options: options.focusSupport,
+    },
+    {
+      key: "studyPreference",
+      label: t.studyPreference,
+      description: locale === "es" ? "Personaliza la forma de repasar cada material." : "Personalize how each material is reviewed.",
+      icon: <BookOpen size={18} />,
+      options: options.studyPreference,
+    },
+  ];
+  const previewRows = [
+    { label: t.explanationStyle, value: draft.explanationStyle ? 92 : 36, tone: "visual" },
+    { label: t.practiceStyle, value: draft.practiceStyle ? 84 : 30, tone: "practice" },
+    { label: t.learningGoal, value: draft.learningGoal ? 78 : 24, tone: "goal" },
+    { label: t.focusSupport, value: draft.focusSupport ? 68 : 18, tone: "focus" },
   ];
 
   return (
@@ -2459,14 +2526,54 @@ function LearningProfileOnboarding({
       initial={{ opacity: 0, y: 18 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.3, ease: "easeOut" }}
-      className="onboarding-card grid w-full gap-5 p-3 sm:p-5 lg:grid-cols-[0.9fr_1.1fr] lg:p-6"
+      className="onboarding-workspace"
     >
-      <section className="onboarding-hero-panel">
-        <div className="mb-5 flex items-center justify-between gap-3">
-          <div className="brand-mark h-14 w-14">
-            <BrainCircuit size={24} />
+      <aside className="onboarding-progress-rail">
+        <MentoraLogo />
+        <div className="onboarding-progress-copy">
+          <strong>{locale === "es" ? "Bienvenida a Mentora" : "Welcome to Mentora"}</strong>
+          <p>{locale === "es" ? "Cuentanos sobre ti para personalizar tu experiencia de estudio." : "Tell us about you so Mentora can personalize your study experience."}</p>
+        </div>
+
+        <ol className="onboarding-steps-list">
+          {setupLabels.map((label, index) => {
+            const status = index < 2 ? "is-done" : index === 2 ? "is-active" : "";
+            return (
+              <li key={label} className={status}>
+                <span>{index < 2 ? <CheckCircle2 size={16} /> : index + 1}</span>
+                <div>
+                  <strong>{label}</strong>
+                  <small>{index < 2 ? (locale === "es" ? "Listo" : "Done") : index === 2 ? t.profileTitle : ""}</small>
+                </div>
+              </li>
+            );
+          })}
+        </ol>
+
+        <div className="onboarding-companion-card">
+          <MentoraMascot />
+          <strong>{locale === "es" ? "Tu asistente IA te acompana en cada paso" : "Your AI assistant follows each step"}</strong>
+          <p>{locale === "es" ? "Te recomendare recursos, quizzes y recordatorios segun tu perfil." : "Mentora will recommend resources, quizzes, and reminders based on your profile."}</p>
+        </div>
+      </aside>
+
+      <section className="onboarding-question-panel">
+        <header className="onboarding-question-hero">
+          <div>
+            <span className="onboarding-step-badge">
+              <Sparkles size={14} />
+              {locale === "es" ? "Paso 3 de 5" : "Step 3 of 5"}
+            </span>
+            <h1>{locale === "es" ? "Como te gusta aprender?" : "How do you like to learn?"}</h1>
+            <p>{t.onboardingFormText}</p>
           </div>
-          <div className="flex items-center gap-2">
+          <div className="onboarding-hero-art" aria-hidden="true">
+            <MentoraMascot />
+            <span className="art-chip art-chip-one">{t.onboardingMiniSummaries}</span>
+            <span className="art-chip art-chip-two">{t.onboardingMiniFlashcards}</span>
+            <span className="art-chip art-chip-three">{t.onboardingMiniTutor}</span>
+          </div>
+          <div className="onboarding-header-actions">
             <button
               className="icon-button"
               aria-label={t.switchLanguage}
@@ -2481,107 +2588,133 @@ function LearningProfileOnboarding({
               {t.signOut}
             </button>
           </div>
-        </div>
-        <span className="onboarding-step-badge">
-          <Sparkles size={14} />
-          {t.onboardingStep}
-        </span>
-        <h1 className="mt-5 text-3xl font-semibold leading-tight text-white sm:text-5xl">{t.onboardingTitle}</h1>
-        <p className="mt-4 max-w-xl text-sm leading-7 text-slate-300 sm:text-base">{t.onboardingText}</p>
+        </header>
 
-        <div className="onboarding-orbit" aria-hidden="true">
-          <div className="onboarding-progress-card">
-            <span>{progress}%</span>
-            <small>{t.profileTitle}</small>
-          </div>
-          {miniCards.map((card, index) => (
-            <motion.div
-              key={card.label}
-              className={`onboarding-float-card float-card-${index + 1}`}
-              animate={{ y: [0, index % 2 === 0 ? -8 : 8, 0] }}
-              transition={{ duration: 4 + index * 0.4, repeat: Infinity, ease: "easeInOut" }}
-            >
-              {card.icon}
-              <span>{card.label}</span>
-            </motion.div>
+        <div className="onboarding-option-board">
+          {optionGroups.map((group) => (
+            <ProfileOptionGroup
+              key={group.key}
+              description={group.description}
+              featured={group.featured}
+              icon={group.icon}
+              label={group.label}
+              onSelect={(value) => onChange({ ...draft, [group.key]: value })}
+              options={group.options}
+              value={draft[group.key]}
+            />
           ))}
         </div>
-      </section>
 
-      <section className="onboarding-form-panel">
-        <div className="mb-5">
-          <p className="text-xs font-semibold uppercase tracking-[0.14em] text-teal-300">
-            {t.onboardingLoggedInAs} {userEmail}
-          </p>
-          <h2 className="mt-2 text-2xl font-semibold text-white">{t.onboardingFormTitle}</h2>
-          <p className="mt-2 text-sm leading-6 text-slate-400">{t.onboardingFormText}</p>
-          <p className="mt-3 rounded-md border border-white/10 bg-white/5 px-3 py-2 text-sm leading-6 text-slate-300">
-            {t.onboardingContinueHint}
-          </p>
-        </div>
-        <div className="grid gap-4">
-          <SelectField
-            icon={<GraduationCap size={17} />}
-            label={t.learningGoal}
-            options={options.learningGoal}
-            suggestions={options.learningGoal.slice(0, 3)}
-            value={draft.learningGoal}
-            onChange={(learningGoal) => onChange({ ...draft, learningGoal })}
-            placeholder={t.learningGoalPlaceholder}
-          />
-          <SelectField
-            icon={<Clock3 size={17} />}
-            label={t.sessionLength}
-            options={options.sessionLength}
-            suggestions={options.sessionLength.slice(1, 4)}
-            value={draft.sessionLength}
-            onChange={(sessionLength) => onChange({ ...draft, sessionLength })}
-            placeholder={t.sessionLengthPlaceholder}
-          />
-          <SelectField
-            icon={<Sparkles size={17} />}
-            label={t.explanationStyle}
-            options={options.explanationStyle}
-            suggestions={options.explanationStyle.slice(0, 3)}
-            value={draft.explanationStyle}
-            onChange={(explanationStyle) => onChange({ ...draft, explanationStyle })}
-            placeholder={t.explanationStylePlaceholder}
-          />
-          <SelectField
-            icon={<Flame size={17} />}
-            label={t.focusSupport}
-            options={options.focusSupport}
-            suggestions={options.focusSupport.slice(0, 3)}
-            value={draft.focusSupport}
-            onChange={(focusSupport) => onChange({ ...draft, focusSupport })}
-            placeholder={t.focusSupportPlaceholder}
-          />
-          <SelectField
-            icon={<ClipboardList size={17} />}
-            label={t.practiceStyle}
-            options={options.practiceStyle}
-            suggestions={options.practiceStyle.slice(0, 3)}
-            value={draft.practiceStyle}
-            onChange={(practiceStyle) => onChange({ ...draft, practiceStyle })}
-            placeholder={t.practiceStylePlaceholder}
-          />
-          <SelectField
-            icon={<BookOpen size={17} />}
-            label={t.studyPreference}
-            options={options.studyPreference}
-            suggestions={options.studyPreference.slice(0, 3)}
-            value={draft.studyPreference}
-            onChange={(studyPreference) => onChange({ ...draft, studyPreference })}
-            placeholder={t.studyPreferencePlaceholder}
-          />
+        <div className="onboarding-bottom-bar">
+          <div>
+            <p>
+              <CheckCircle2 size={16} />
+              {selectedCount}/6 {locale === "es" ? "respuestas seleccionadas" : "answers selected"}
+            </p>
+            <small>
+              {t.onboardingLoggedInAs} {userEmail}
+            </small>
+          </div>
           <button className="primary-button onboarding-cta h-12 justify-center" disabled={busy || !complete} onClick={onSave} type="button">
             {busy ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
             {t.onboardingAction}
           </button>
-          {!complete && <p className="text-xs font-medium text-slate-400">{t.profileIncomplete}</p>}
         </div>
+        {!complete && <p className="onboarding-incomplete-note">{t.profileIncomplete}</p>}
       </section>
+
+      <aside className="onboarding-preview-panel">
+        <div className="onboarding-preview-card">
+          <span>{locale === "es" ? "Asi personalizaremos tu experiencia" : "How Mentora will personalize your experience"}</span>
+          <h2>{t.profileTitle}</h2>
+          <strong>{progress}%</strong>
+          <div className="onboarding-profile-meter" aria-label={`${t.profileTitle} ${progress}%`}>
+            <i style={{ width: `${progress}%` }} />
+          </div>
+          <div className="onboarding-preview-bars">
+            {previewRows.map((row) => (
+              <div key={row.label} className={`preview-row tone-${row.tone}`}>
+                <div>
+                  <small>{row.label}</small>
+                  <em>{row.value}%</em>
+                </div>
+                <span><i style={{ width: `${row.value}%` }} /></span>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="onboarding-preview-card">
+          <span>{locale === "es" ? "Te recomendaremos" : "Mentora will recommend"}</span>
+          <ul className="onboarding-recommendation-list">
+            {[
+              [t.onboardingMiniSummaries, <FileText key="summary" size={16} />],
+              [t.onboardingMiniExam, <ClipboardList key="quiz" size={16} />],
+              [t.onboardingMiniFlashcards, <Layers3 key="cards" size={16} />],
+              [t.onboardingMiniTutor, <BrainCircuit key="tutor" size={16} />],
+            ].map(([label, icon]) => (
+              <li key={String(label)}>
+                {icon}
+                <span>{label}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div className="onboarding-preview-card is-plan">
+          <span>{locale === "es" ? "Tu primer plan de estudio" : "Your first study plan"}</span>
+          <h3>{draft.learningGoal || t.learningGoal}</h3>
+          <p>{complete ? t.onboardingContinueHint : t.profileIncomplete}</p>
+        </div>
+      </aside>
     </motion.section>
+  );
+}
+
+function ProfileOptionGroup({
+  description,
+  featured = false,
+  icon,
+  label,
+  onSelect,
+  options,
+  value,
+}: {
+  description: string;
+  featured?: boolean;
+  icon: ReactNode;
+  label: string;
+  onSelect: (value: string) => void;
+  options: string[];
+  value: string;
+}) {
+  return (
+    <section className={`profile-option-group ${featured ? "is-featured" : ""}`}>
+      <div className="profile-option-heading">
+        <span>{icon}</span>
+        <div>
+          <h2>{label}</h2>
+          <p>{description}</p>
+        </div>
+      </div>
+      <div className="profile-option-grid">
+        {options.map((option) => {
+          const selected = value === option;
+          return (
+            <button
+              key={option}
+              aria-pressed={selected}
+              className={selected ? "is-selected" : ""}
+              onClick={() => onSelect(option)}
+              type="button"
+            >
+              <span>{selected ? <CheckCircle2 size={17} /> : <Sparkles size={17} />}</span>
+              <strong>{option}</strong>
+            </button>
+          );
+        })}
+      </div>
+    </section>
   );
 }
 
@@ -2879,16 +3012,16 @@ function CreateSpaceButton({
   }
 
   return (
-    <div className="relative">
+    <div className="space-creator-shell relative">
       <button
         aria-expanded={open}
-        className="inline-flex h-8 items-center gap-1.5 rounded-full bg-cyan-300 px-3 text-xs font-bold text-slate-950 transition-[transform,background-color,opacity] hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200 disabled:opacity-60"
+        className="space-creator-trigger inline-flex h-8 items-center gap-1.5 rounded-full bg-cyan-300 px-3 text-xs font-bold text-slate-950 transition-[transform,background-color,opacity] hover:bg-cyan-200 focus-visible:outline focus-visible:outline-2 focus-visible:outline-cyan-200 disabled:opacity-60"
         disabled={busy}
         onClick={() => setOpen((current) => !current)}
         type="button"
       >
         {busy ? <Loader2 className="animate-spin" size={14} /> : <Plus size={14} />}
-        <span className="hidden sm:inline lg:hidden 2xl:inline">{label}</span>
+        <span className="space-creator-trigger-label hidden sm:inline lg:hidden 2xl:inline">{label}</span>
       </button>
 
       <AnimatePresence initial={false}>
