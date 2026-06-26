@@ -2882,6 +2882,17 @@ body,
   text-decoration: none;
 }
 
+.mentora-logo[role="button"],
+.mentora-logo[href] {
+  cursor: pointer;
+  transition: opacity 180ms ease, transform 180ms ease;
+}
+
+.mentora-logo[role="button"]:hover,
+.mentora-logo[href]:hover {
+  opacity: 0.8;
+}
+
 .mentora-logo-mark {
   display: grid;
   width: 50px;
@@ -9682,6 +9693,29 @@ button:active:not(:disabled),
 
 .liquid-nav-logo .mentora-logo {
   color: var(--liquid-ink);
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.25rem 0.4rem;
+  margin: -0.25rem -0.4rem;
+  border-radius: 0.6rem;
+  transition: transform 180ms ease, opacity 180ms ease, background 180ms ease;
+}
+
+.liquid-nav-logo .mentora-logo:hover {
+  opacity: 0.75;
+  transform: translateY(-1px);
+}
+
+.liquid-nav-logo .mentora-logo:active {
+  transform: translateY(0);
+  opacity: 0.6;
+}
+
+.liquid-nav-logo .mentora-logo:focus-visible {
+  outline: 2px solid var(--liquid-accent, #4f46e5);
+  outline-offset: 2px;
 }
 
 .liquid-profile-chip,

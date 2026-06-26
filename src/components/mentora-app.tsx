@@ -188,6 +188,27 @@ async function getAccessToken(client: SupabaseClient) {
   }
 }
 
+async function autoSignInDev(client: SupabaseClient) {
+  const isDev = process.env.NODE_ENV !== "production";
+  const enabled = process.env.NEXT_PUBLIC_MENTORA_DEV_AUTOLOGIN === "true";
+  if (!isDev || !enabled) {
+    return;
+  }
+  const email = process.env.NEXT_PUBLIC_MENTORA_DEV_EMAIL;
+  const password = process.env.NEXT_PUBLIC_MENTORA_DEV_PASSWORD;
+  if (!email || !password) {
+    return;
+  }
+  try {
+    const { error } = await client.auth.signInWithPassword({ email, password });
+    if (error) {
+      reportClientError("Dev auto sign-in failed", error);
+    }
+  } catch (caught) {
+    reportClientError("Dev auto sign-in failed", caught);
+  }
+}
+
 export function MentoraApp() {
   const [locale, setLocale] = useState<Locale>("es");
   const supabaseSetup = useMemo(() => {
@@ -375,20 +396,29 @@ export function MentoraApp() {
       return;
     }
 
+    let cancelled = false;
+
     supabase.auth
       .getSession()
-      .then(({ data, error }) => {
-        if (error) {
-          void supabase.auth.signOut();
-          setSession(null);
-        } else {
-          setSession(data.session);
+      .then(async ({ data, error }) => {
+        if (cancelled) {
+          return;
         }
+        if (error || !data.session) {
+          if (error) {
+            void supabase.auth.signOut();
+          }
+          setSession(null);
+          await autoSignInDev(supabase);
+          return;
+        }
+        setSession(data.session);
       })
       .catch((caught) => {
         reportClientError("Session initialization failed", caught);
         setError(t.authNetworkError);
         setSession(null);
+        void autoSignInDev(supabase);
       });
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
       setSession(nextSession);
@@ -397,7 +427,10 @@ export function MentoraApp() {
       }
     });
 
-    return () => data.subscription.unsubscribe();
+    return () => {
+      cancelled = true;
+      data.subscription.unsubscribe();
+    };
   }, [supabase, t.authNetworkError]);
 
   useEffect(() => {
@@ -1392,9 +1425,23 @@ function AuthScreen({
   );
 }
 
-function MentoraLogo() {
+function MentoraLogo({ onClick, href = "/" }: { onClick?: () => void; href?: string }) {
   return (
-    <a className="mentora-logo" href="#top" aria-label="Mentora">
+    <a
+      className="mentora-logo"
+      href={onClick ? undefined : href}
+      aria-label="Mentora"
+      role={onClick ? "button" : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onClick={
+        onClick
+          ? (event) => {
+              event.preventDefault();
+              onClick();
+            }
+          : undefined
+      }
+    >
       <span className="mentora-logo-mark" aria-hidden="true" />
       <span>Mentora</span>
     </a>
@@ -1762,7 +1809,7 @@ function NavigationRail({
     <aside className="liquid-nav" aria-label="Student navigation">
       <div className="liquid-nav-inner">
         <div className="liquid-nav-logo">
-          <MentoraLogo />
+          <MentoraLogo onClick={() => onSignOut()} />
         </div>
 
         <button className="liquid-profile-chip" onClick={() => onSelectView("profile")} type="button">

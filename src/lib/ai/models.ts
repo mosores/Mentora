@@ -1,5 +1,9 @@
 import { env } from "@/lib/server-env";
 
+const MODELS_CACHE_TTL_MS = 10 * 60 * 1000;
+let modelsCache: ModelOption[] | null = null;
+let modelsCacheAt = 0;
+
 export type ModelOption = {
   id: string;
   name: string;
@@ -41,6 +45,10 @@ export class OpenRouterConnectionError extends Error {
 }
 
 export async function listOpenRouterModels(): Promise<ModelOption[]> {
+  const now = Date.now();
+  if (modelsCache && now - modelsCacheAt < MODELS_CACHE_TTL_MS) {
+    return modelsCache;
+  }
   try {
     const headers = new Headers();
     if (env.OPENROUTER_API_KEY) {
@@ -62,7 +70,10 @@ export async function listOpenRouterModels(): Promise<ModelOption[]> {
       .map(toModelOption)
       .sort((left, right) => Number(right.isFree) - Number(left.isFree) || left.name.localeCompare(right.name));
 
-    return [freeRouter, ...models.filter((model) => model.id !== freeRouter.id)];
+    const result = [freeRouter, ...models.filter((model) => model.id !== freeRouter.id)];
+    modelsCache = result;
+    modelsCacheAt = now;
+    return result;
   } catch (error) {
     console.warn("[Mentora] Could not load OpenRouter models. Using fallback free router.", error);
     return [freeRouter];
