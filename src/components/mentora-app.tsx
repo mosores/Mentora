@@ -190,6 +190,15 @@ function parseBirthLocation(learningProfile: LearningProfile) {
     .split(",")
     .map((part) => part.trim())
     .filter(Boolean);
+  if (parts.length === 1) {
+    const country = findBirthCountryByText(parts[0]);
+
+    return {
+      birthCountryCode: country?.code ?? "",
+      birthCity: country ? "" : toLocationTitle(parts[0]),
+    };
+  }
+
   const [cityPart, ...countryParts] = parts;
   const country = findBirthCountryByText(countryParts.join(" "));
 
@@ -3188,17 +3197,25 @@ function InsightPanel({
 }
 
 function TextField({
+  autoComplete,
+  disabled = false,
   label,
+  list,
   value,
   onChange,
   placeholder,
+  spellCheck,
   t,
   type = "text",
 }: {
+  autoComplete?: string;
+  disabled?: boolean;
   label: string;
+  list?: string;
   value: string;
   onChange: (value: string) => void;
   placeholder?: string;
+  spellCheck?: boolean;
   t?: Record<string, string>;
   type?: string;
 }) {
@@ -3212,6 +3229,10 @@ function TextField({
       <span className="relative block">
         <input
           className={`text-input h-12 ${isPassword ? "pr-12" : ""}`}
+          autoComplete={autoComplete}
+          disabled={disabled}
+          list={list}
+          spellCheck={spellCheck}
           type={inputType}
           value={value}
           placeholder={placeholder}
@@ -3227,6 +3248,44 @@ function TextField({
             {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
           </button>
         )}
+      </span>
+    </label>
+  );
+}
+
+function SelectInputField({
+  label,
+  options,
+  value,
+  onChange,
+  placeholder,
+}: {
+  label: string;
+  options: SelectOption[];
+  value: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+}) {
+  return (
+    <label className="block text-sm font-medium text-slate-300">
+      <span className="mb-2 block">{label}</span>
+      <span className="relative block">
+        <select
+          className="text-input h-12 appearance-none bg-white pr-10 leading-normal"
+          required
+          value={value}
+          onChange={(event) => onChange(event.target.value)}
+        >
+          <option value="" disabled>
+            {placeholder}
+          </option>
+          {options.map((option) => (
+            <option key={option.value} value={option.value}>
+              {option.label}
+            </option>
+          ))}
+        </select>
+        <ChevronRight className="profile-select-chevron" size={16} />
       </span>
     </label>
   );

@@ -7969,7 +7969,7 @@ button:active:not(:disabled),
 
 .profile-personal-fields {
   display: grid;
-  grid-template-columns: minmax(0, 0.75fr) minmax(0, 0.65fr) minmax(0, 1.1fr);
+  grid-template-columns: minmax(0, 0.75fr) minmax(0, 0.6fr) minmax(0, 0.9fr) minmax(0, 1fr);
   gap: 12px;
 }
 
