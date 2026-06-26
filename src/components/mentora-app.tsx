@@ -6,7 +6,6 @@ import {
   ArrowUpRight,
   BookOpen,
   BrainCircuit,
-  CalendarDays,
   CheckCircle2,
   ChevronRight,
   ClipboardList,
@@ -2849,7 +2848,6 @@ function ProfileStudio({
   const options = learningProfileOptions(t);
   const complete = isLearningProfileComplete(draft);
   const profileReady = complete && draft.birthDate.trim().length > 0 && draft.birthPlace.trim().length > 0;
-  const developmentRows = buildDevelopmentRows(draft, t);
   const [learningGoalOpen, setLearningGoalOpen] = useState(false);
 
   return (
@@ -2959,34 +2957,6 @@ function ProfileStudio({
                     placeholder={t.practiceStylePlaceholder}
                   />
 
-                  <div className="profile-guidance-panel">
-                    <div className="mb-3 flex items-start justify-between gap-3">
-                      <div>
-                        <h3>{t.academicDevelopmentMap}</h3>
-                        <p>{t.academicDevelopmentText}</p>
-                      </div>
-                      <CalendarDays size={18} />
-                    </div>
-                    <table className="profile-guidance-table">
-                      <thead>
-                        <tr>
-                          <th>{t.developmentArea}</th>
-                          <th>{t.developmentSignal}</th>
-                          <th>{t.developmentNextStep}</th>
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {developmentRows.map((row) => (
-                          <tr key={row.area}>
-                            <td>{row.area}</td>
-                            <td>{row.signal}</td>
-                            <td>{row.nextStep}</td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-
                   <button
                     className="primary-button h-12 justify-center"
                     disabled={busy === "profile" || !profileReady}
@@ -3004,76 +2974,6 @@ function ProfileStudio({
       </section>
     </div>
   );
-}
-
-function calculateAge(birthDate: string) {
-  if (!birthDate) {
-    return null;
-  }
-
-  const parsed = new Date(`${birthDate}T00:00:00`);
-  if (Number.isNaN(parsed.getTime())) {
-    return null;
-  }
-
-  const now = new Date();
-  if (parsed > now) {
-    return null;
-  }
-
-  let age = now.getFullYear() - parsed.getFullYear();
-  const monthDelta = now.getMonth() - parsed.getMonth();
-  const hasBirthdayPassed = monthDelta > 0 || (monthDelta === 0 && now.getDate() >= parsed.getDate());
-  if (!hasBirthdayPassed) {
-    age -= 1;
-  }
-
-  return age;
-}
-
-function buildDevelopmentRows(draft: LearningProfileDraft, t: Record<string, string>) {
-  const age = calculateAge(draft.birthDate);
-  const stage =
-    age === null
-      ? t.developmentStageUnknown
-      : age < 18
-      ? t.developmentStageFoundation
-      : age <= 22
-      ? t.developmentStageUniversity
-      : age <= 29
-      ? t.developmentStageBridge
-      : t.developmentStageContinuing;
-  const birthContext = [draft.birthPlace, draft.birthTime].filter((value) => value.trim().length > 0).join(" - ");
-  const rhythm = [draft.sessionLength, draft.focusSupport].filter((value) => value.trim().length > 0).join(" + ");
-  const practice = [draft.explanationStyle, draft.practiceStyle].filter((value) => value.trim().length > 0).join(" + ");
-
-  return [
-    {
-      area: t.developmentStage,
-      signal: age === null ? stage : `${age} - ${stage}`,
-      nextStep: t.developmentStageAction,
-    },
-    {
-      area: t.developmentContext,
-      signal: birthContext || t.notSet,
-      nextStep: t.developmentContextAction,
-    },
-    {
-      area: t.developmentAcademic,
-      signal: draft.learningGoal || t.notSet,
-      nextStep: t.developmentAcademicAction,
-    },
-    {
-      area: t.developmentWellbeing,
-      signal: rhythm || t.notSet,
-      nextStep: t.developmentWellbeingAction,
-    },
-    {
-      area: t.developmentPractice,
-      signal: practice || t.notSet,
-      nextStep: t.developmentPracticeAction,
-    },
-  ];
 }
 
 function InsightPanel({
