@@ -832,24 +832,6 @@ export function MentoraApp() {
         />
 
         <section className="liquid-main-scroll">
-          {activeView !== "profile" && (
-            <header className="liquid-command-bar is-utility-only" aria-label="Workspace command bar">
-              <div className="liquid-command-actions">
-                <button className="liquid-icon-button" aria-label={t.switchLanguage} onClick={() => setLocale(locale === "es" ? "en" : "es")} type="button">
-                  <Globe2 size={18} />
-                  <span>{locale.toUpperCase()}</span>
-                </button>
-                <button className="liquid-icon-button" aria-label="Help" type="button">
-                  <HelpCircle size={18} />
-                </button>
-                <button className="liquid-icon-button" onClick={handleManualSignOut} type="button">
-                  <LogOut size={18} />
-                  <span className="liquid-signout-label">{t.signOut}</span>
-                </button>
-              </div>
-            </header>
-          )}
-
           <section className="liquid-content-panel">
             <div className="min-h-0 flex-1 overflow-visible px-3 pb-5 sm:px-5 sm:pb-6">
               <AnimatePresence mode="wait">

@@ -156,6 +156,8 @@ Interaction rule: the sidebar should be a map, not a second dashboard.
 - [x] Remove duplicate no-source helper copy from the Practice generator header.
 - [x] Remove duplicate dashboard active-space, preparation, tutor-preview, practice-preview, and empty-materials panels from `Resumen`.
 - [x] Keep recent materials on `Resumen` only when materials actually exist; otherwise the first upload action stays in the hero.
+- [x] Remove the repeated authenticated utility bar (`ES`, help, `Cerrar sesion`) from `Resumen`, `Fuentes`, `Tutor`, and `Practica`.
+- [x] Keep sign-out in the primary navigation only so global account actions do not compete with study content.
 
 ## Run Notes
 
@@ -171,6 +173,8 @@ Interaction rule: the sidebar should be a map, not a second dashboard.
   - [x] `.qa/auth-mobile-practice-clean.png`
 - [x] Re-run checks after duplicate surface removal.
 - [x] Authenticated workspace QA confirmed no duplicate workspace header, right rail, command title block, empty-materials panel, tutor preview card, or practice preview card.
+- [x] Re-run authenticated workspace QA after removing the repeated utility bar.
+- [x] Authenticated utility-bar QA confirmed `Resumen`, `Fuentes`, `Tutor`, and `Practica` have zero `.liquid-command-bar` nodes and only one visible `Cerrar sesion`.
 
 ## Non-goals
 
