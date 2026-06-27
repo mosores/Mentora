@@ -1,6 +1,6 @@
 "use client";
 
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -256,10 +256,10 @@ function readAvatarFile(file: File) {
   });
 }
 
-const toolMeta: Record<ToolKind, { icon: ReactNode; tone: string }> = {
-  quiz: { icon: <ClipboardList size={18} />, tone: "from-cyan-300/20 to-blue-400/10 text-cyan-100" },
-  flashcards: { icon: <Layers3 size={18} />, tone: "from-amber-300/20 to-orange-400/10 text-amber-100" },
-  apa_summary: { icon: <FileText size={18} />, tone: "from-violet-300/20 to-fuchsia-400/10 text-violet-100" },
+const toolMeta: Record<ToolKind, { icon: ReactNode }> = {
+  quiz: { icon: <ClipboardList size={18} /> },
+  flashcards: { icon: <Layers3 size={18} /> },
+  apa_summary: { icon: <FileText size={18} /> },
 };
 
 const viewIcons: Record<AppView, ReactNode> = {
@@ -351,6 +351,9 @@ async function getAccessToken(client: SupabaseClient) {
   }
 }
 
+let _mentoraAutoSignInTries = 0;
+const MENTORA_MAX_AUTO_SIGNIN = 3;
+
 async function autoSignInDev(client: SupabaseClient, skipRef?: { current: boolean }) {
   const isDev = process.env.NODE_ENV !== "production";
   const enabled = process.env.NEXT_PUBLIC_MENTORA_DEV_AUTOLOGIN === "true";
@@ -362,6 +365,12 @@ async function autoSignInDev(client: SupabaseClient, skipRef?: { current: boolea
     skipRef.current = false;
     return;
   }
+  if (_mentoraAutoSignInTries >= MENTORA_MAX_AUTO_SIGNIN) {
+    reportClientError("Dev auto sign-in halted after max attempts", new Error("Too many auto-signin attempts"));
+    return;
+  }
+  _mentoraAutoSignInTries++;
+
   const email = process.env.NEXT_PUBLIC_MENTORA_DEV_EMAIL;
   const password = process.env.NEXT_PUBLIC_MENTORA_DEV_PASSWORD;
   if (!email || !password) {
@@ -415,7 +424,6 @@ export function MentoraApp() {
   const [activeSpaceId, setActiveSpaceId] = useState<string | null>(null);
   const [activeView, setActiveView] = useState<AppView>("home");
   const [busy, setBusy] = useState<string | null>(null);
-  const [workspaceLoading, setWorkspaceLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [uploadNotice, setUploadNotice] = useState<string | null>(null);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -440,7 +448,6 @@ export function MentoraApp() {
       return;
     }
 
-    setWorkspaceLoading(true);
     let workspaceResult: unknown[];
 
     try {
@@ -459,16 +466,9 @@ export function MentoraApp() {
       ]);
     } catch (caught) {
       reportClientError("Workspace network request failed", caught);
-      setWorkspaceLoading(false);
       setError(t.authNetworkError);
-      // A stale/invalid session often surfaces here. Force a clean re-auth.
-      try {
-        await client.auth.signOut();
-      } catch {
-        // ignore
-      }
+      // A stale/invalid session often surfaces here. Go back to auth screen.
       setSession(null);
-      void autoSignInDev(client, manualSignOutRef);
       return;
     }
 
@@ -485,8 +485,6 @@ export function MentoraApp() {
       { data: unknown; error: unknown },
       { data: unknown; error: unknown },
     ];
-
-    setWorkspaceLoading(false);
 
     if (profileError) {
       reportClientError("Profile load failed", profileError);
@@ -601,8 +599,18 @@ export function MentoraApp() {
           return;
         }
         if (error || !data.session) {
-          if (error) {
-            void supabase.auth.signOut();
+          // A stale/revoked refresh token (e.g. after a password reset) surfaces
+          // here as "Invalid Refresh Token". Always clear the stored session so
+          // the bad cookie doesn't replay on the next load.
+          const isStaleRefresh =
+            !!error && /refresh token|auth session missing/i.test(error.message ?? "");
+          if (error && !isStaleRefresh) {
+            reportClientError("Session initialization failed", error);
+          }
+          try {
+            await supabase.auth.signOut();
+          } catch {
+            // ignore — cookies are cleared locally regardless
           }
           setSession(null);
           await autoSignInDev(supabase, manualSignOutRef);
@@ -638,16 +646,20 @@ export function MentoraApp() {
         await autoSignInDev(supabase, manualSignOutRef);
       });
     const { data } = supabase.auth.onAuthStateChange((event, nextSession) => {
-      if (event === "SIGNED_OUT" || event === "TOKEN_REFRESHED") {
-        if (event === "SIGNED_OUT") {
-          setSession(null);
-          void autoSignInDev(supabase, manualSignOutRef);
-          return;
-        }
+      if (event === "SIGNED_OUT") {
+        setSession(null);
+        return;
+      }
+      if (event === "TOKEN_REFRESHED" && !nextSession) {
+        // Refresh failed (revoked/expired token). Clear the stale cookie so it
+        // doesn't error again on the next reload.
+        void supabase.auth.signOut();
+        setSession(null);
+        return;
       }
       setSession(nextSession);
       if (!nextSession) {
-        void autoSignInDev(supabase, manualSignOutRef);
+        // Session cleared; parent flow handles re-auth
       }
       if (event === "PASSWORD_RECOVERY") {
         setPasswordRecovery(true);
@@ -707,11 +719,9 @@ export function MentoraApp() {
   );
 
   const readyDocuments = activeDocuments.filter((document) => document.processing_status === "ready");
-  const failedDocuments = activeDocuments.filter((document) => document.processing_status === "failed");
   const processingDocuments = activeDocuments.filter(
     (document) => document.processing_status !== "ready" && document.processing_status !== "failed"
   );
-  const readiness = activeDocuments.length > 0 ? Math.round((readyDocuments.length / activeDocuments.length) * 100) : 0;
   const hasReadySources = readyDocuments.length > 0;
 
   useEffect(() => {
@@ -808,7 +818,7 @@ export function MentoraApp() {
         )}
       </AnimatePresence>
 
-      <div className={`liquid-app-grid ${activeView === "home" ? "has-insights" : "is-focus"}`}>
+      <div className="liquid-app-grid is-focus">
         <NavigationRail
           activeSpace={activeSpace}
           activeView={activeView}
@@ -825,16 +835,8 @@ export function MentoraApp() {
 
         <section className="liquid-main-scroll">
           {activeView !== "profile" && (
-            <header className="liquid-command-bar" aria-label="Workspace command bar">
-              <div className="liquid-command-context">
-                <span>{activeSpace?.name ?? t.dashboard}</span>
-                <strong>{activeView === "home" ? t.dashboard : t[`${activeView}Title`]}</strong>
-              </div>
+            <header className="liquid-command-bar is-utility-only" aria-label="Workspace command bar">
               <div className="liquid-command-actions">
-                <LiquidButton className="liquid-start-button" onClick={() => setActiveView("tutor")}>
-                  <Sparkles size={17} />
-                  <span>{t.startStudy}</span>
-                </LiquidButton>
                 <button className="liquid-icon-button" aria-label={t.switchLanguage} onClick={() => setLocale(locale === "es" ? "en" : "es")} type="button">
                   <Globe2 size={18} />
                   <span>{locale.toUpperCase()}</span>
@@ -851,28 +853,6 @@ export function MentoraApp() {
           )}
 
           <section className="liquid-content-panel">
-            {activeView !== "profile" && (
-              <WorkspaceHeader
-                activeSpace={activeSpace}
-                activeView={activeView}
-                artifacts={activeArtifacts}
-                documents={activeDocuments}
-                failedDocuments={failedDocuments}
-                loading={workspaceLoading}
-                models={models}
-                openRouterConnected={openRouterConnected}
-                openRouterServerConnected={openRouterServerConnected}
-                onSelectModel={handleModelSelect}
-                onUpload={uploadDocument}
-                processingDocuments={processingDocuments}
-                readyDocuments={readyDocuments}
-                readiness={readiness}
-                selectedModel={selectedModel}
-                uploadBusy={busy === "upload"}
-                t={t}
-              />
-            )}
-
             <div className="min-h-0 flex-1 overflow-visible px-3 pb-5 sm:px-5 sm:pb-6">
               <AnimatePresence mode="wait">
                 {activeView === "home" && (
@@ -882,7 +862,6 @@ export function MentoraApp() {
                       activeSpace={activeSpace}
                       artifacts={activeArtifacts}
                       busy={busy}
-                      onAsk={() => setActiveView("tutor")}
                       onSelectView={setActiveView}
                       onUpload={uploadDocument}
                       profile={profile}
@@ -933,7 +912,12 @@ export function MentoraApp() {
                       activeSpace={activeSpace}
                       busy={busy}
                       hasReadySources={hasReadySources}
+                      models={models}
+                      openRouterConnected={openRouterConnected}
+                      openRouterServerConnected={openRouterServerConnected}
                       onGenerate={(kind) => activeSpace && generateTool(activeSpace.id, kind)}
+                      onSelectModel={handleModelSelect}
+                      onUpload={uploadDocument}
                       selectedModel={selectedModel}
                       t={t}
                     />
@@ -959,19 +943,6 @@ export function MentoraApp() {
             </div>
           </section>
         </section>
-
-        {activeView === "home" && (
-          <aside className="liquid-right-rail">
-            <InsightPanel
-              artifacts={activeArtifacts}
-              documents={activeDocuments}
-              loading={workspaceLoading}
-              profile={profile}
-              readyDocuments={readyDocuments}
-              t={t}
-            />
-          </aside>
-        )}
       </div>
     </main>
   );
@@ -1714,8 +1685,8 @@ function HeroProductMockup({ t }: { t: Record<string, string> }) {
         </div>
         <div className="hero-laptop-grid">
           <aside>
-            {["Inicio", "Chat Tutor IA", "Mis materiales", "Resúmenes", "Flashcards", "Quizzes"].map((item, index) => (
-              <span key={item} className={index === 1 ? "is-active" : ""}>{item}</span>
+            {["Resumen", "Fuentes", "Tutor", "Practica"].map((item, index) => (
+              <span key={item} className={index === 2 ? "is-active" : ""}>{item}</span>
             ))}
           </aside>
           <main>
@@ -1993,35 +1964,6 @@ function PasswordRecoveryScreen({
   );
 }
 
-function LiquidButton({
-  children,
-  className = "",
-  disabled,
-  onClick,
-}: {
-  children: ReactNode;
-  className?: string;
-  disabled?: boolean;
-  onClick?: () => void;
-}) {
-  const prefersReducedMotion = useReducedMotion();
-
-  return (
-    <motion.button
-      className={`liquid-button ${className}`}
-      disabled={disabled}
-      onClick={onClick}
-      type="button"
-      whileHover={disabled || prefersReducedMotion ? undefined : { y: -1, scale: 1.01 }}
-      whileTap={disabled || prefersReducedMotion ? undefined : { y: 1, scale: 0.985 }}
-      transition={{ type: "spring", stiffness: 420, damping: 32, mass: 0.7 }}
-    >
-      <span className="liquid-button-shine" aria-hidden="true" />
-      <span className="liquid-button-content">{children}</span>
-    </motion.button>
-  );
-}
-
 function NavigationRail({
   activeSpace,
   activeView,
@@ -2047,14 +1989,16 @@ function NavigationRail({
   spaces: StudySpace[];
   t: Record<string, string>;
 }) {
-  const navItems: Array<{ id: Exclude<AppView, "profile">; label: string; detail: string }> = [
+  const readyCount = documents.filter((document) => document.processing_status === "ready").length;
+  const navItems: Array<{ id: Exclude<AppView, "profile">; label: string; detail: string; badge?: string }> = [
     { id: "home", label: t.home, detail: t.homeNav },
-    { id: "documents", label: t.myMaterials, detail: `${documents.length} ${t.sources}` },
-    { id: "tutor", label: t.aiTutor, detail: t.tutorNav },
+    { id: "documents", label: t.myMaterials, detail: t.sourceLibrary, badge: documents.length.toString() },
+    { id: "tutor", label: t.aiTutor, detail: readyCount > 0 ? t.sourcesReady : t.waitingForSources, badge: readyCount > 0 ? readyCount.toString() : undefined },
     { id: "tools", label: t.studyTools, detail: t.toolsNav },
   ];
   const initials = (profile?.full_name ?? profile?.email ?? "M").slice(0, 2).toUpperCase();
   const isProfileActive = activeView === "profile";
+  const activeSpaceDetail = activeSpace ? `${documents.length} ${t.sources}` : "";
 
   return (
     <aside className="liquid-nav" aria-label="Student navigation">
@@ -2095,34 +2039,38 @@ function NavigationRail({
                   <strong>{item.label}</strong>
                   <small>{item.detail}</small>
                 </span>
+                {item.badge && <span className="liquid-tab-badge">{item.badge}</span>}
               </button>
             );
           })}
         </nav>
 
-        <section className="liquid-space-card" aria-label={t.currentSpace}>
+        <section className="liquid-space-card is-compact" aria-label={t.currentSpace}>
+          <span className="liquid-space-icon" aria-hidden="true">
+            <BookOpen size={15} />
+          </span>
           <div>
-            <span>{t.currentSpace}</span>
             <strong>{activeSpace?.name ?? t.noSpaceTitle}</strong>
-            <small>{activeSpace?.description ?? t.noSpaceDescription}</small>
+            {activeSpaceDetail && <small>{activeSpaceDetail}</small>}
           </div>
           <CreateSpaceButton busy={busy === "space"} label={t.newSpace} onCreate={onCreate} t={t} />
         </section>
 
-        <div className="liquid-space-list" aria-label={t.spaces}>
-          {spaces.slice(0, 4).map((space) => (
-            <button
-              key={space.id}
-              className={`liquid-space-option ${activeSpace?.id === space.id ? "is-active" : ""}`}
-              onClick={() => onSelectSpace(space.id)}
-              type="button"
-            >
-              <BookOpen size={16} />
-              <span>{space.name}</span>
-            </button>
-          ))}
-          {spaces.length === 0 && <p>{t.noSpaceDescription}</p>}
-        </div>
+        {spaces.length > 0 && (
+          <div className="liquid-space-list" aria-label={t.spaces}>
+            {spaces.slice(0, 4).map((space) => (
+              <button
+                key={space.id}
+                className={`liquid-space-option ${activeSpace?.id === space.id ? "is-active" : ""}`}
+                onClick={() => onSelectSpace(space.id)}
+                type="button"
+              >
+                <BookOpen size={16} />
+                <span>{space.name}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="liquid-nav-footer">
           <button className="liquid-signout" onClick={onSignOut} type="button">
@@ -2135,98 +2083,11 @@ function NavigationRail({
   );
 }
 
-function WorkspaceHeader({
-  activeSpace,
-  activeView,
-  artifacts,
-  documents,
-  failedDocuments,
-  loading,
-  models,
-  openRouterConnected,
-  openRouterServerConnected,
-  onSelectModel,
-  onUpload,
-  processingDocuments,
-  readyDocuments,
-  readiness,
-  selectedModel,
-  uploadBusy,
-  t,
-}: {
-  activeSpace: StudySpace | null;
-  activeView: AppView;
-  artifacts: GeneratedArtifact[];
-  documents: DocumentRecord[];
-  failedDocuments: DocumentRecord[];
-  loading: boolean;
-  models: ModelOption[];
-  openRouterConnected: boolean;
-  openRouterServerConnected: boolean;
-  onSelectModel: (modelId: string) => void;
-  onUpload: (file: File) => void;
-  processingDocuments: DocumentRecord[];
-  readyDocuments: DocumentRecord[];
-  readiness: number;
-  selectedModel: string;
-  uploadBusy: boolean;
-  t: Record<string, string>;
-}) {
-  const viewTitle = activeView === "home" ? t.dashboard : t[`${activeView}Title`];
-
-  if (activeView === "home") {
-    return null;
-  }
-
-  return (
-    <div className="liquid-workspace-header">
-      <div className="liquid-workspace-title">
-        <span>
-          {viewIcons[activeView]}
-          {activeSpace?.name ?? t.dashboard}
-        </span>
-        <h1>{viewTitle}</h1>
-      </div>
-
-      <div className="liquid-workspace-tools">
-        <ModelSelector
-          models={models}
-          openRouterConnected={openRouterConnected}
-          openRouterServerConnected={openRouterServerConnected}
-          selectedModel={selectedModel}
-          t={t}
-          onSelect={onSelectModel}
-        />
-        <UploadControl disabled={uploadBusy} loading={uploadBusy} label={t.uploadPdf} onUpload={onUpload} />
-        {loading && (
-          <span className="liquid-status-chip">
-            <Loader2 className="animate-spin" size={16} />
-            {t.syncing}
-          </span>
-        )}
-      </div>
-
-      <section className="liquid-metric-strip" aria-label={t.learningPulse}>
-        <Metric icon={<FileText size={17} />} label={t.documents} value={documents.length.toString()} />
-        <Metric icon={<CheckCircle2 size={17} />} label={t.ready} value={readyDocuments.length.toString()} tone="success" />
-        <Metric icon={<Clock3 size={17} />} label={t.processing} value={processingDocuments.length.toString()} tone="warning" />
-        <Metric icon={<Sparkles size={17} />} label={t.generated} value={artifacts.length.toString()} tone={failedDocuments.length > 0 ? "danger" : "accent"} />
-        <div className="liquid-readiness-mini" aria-label={`${t.readiness} ${readiness}%`}>
-          <span>{readiness > 0 ? t.readyToStudy : t.buildingIndex}</span>
-          <div><i style={{ width: `${readiness}%` }} /></div>
-          <strong>{readiness}%</strong>
-        </div>
-      </section>
-    </div>
-  );
-}
-
 function RealStudentDashboard({
   activeDocuments,
   activeSpace,
   artifacts,
   busy,
-  onAsk,
   onSelectView,
   onUpload,
   profile,
@@ -2237,7 +2098,6 @@ function RealStudentDashboard({
   activeSpace: StudySpace | null;
   artifacts: GeneratedArtifact[];
   busy: string | null;
-  onAsk: () => void;
   onSelectView: (view: AppView) => void;
   onUpload: (file: File) => void;
   profile: Profile | null;
@@ -2251,47 +2111,82 @@ function RealStudentDashboard({
   );
   const failedDocuments = activeDocuments.filter((document) => document.processing_status === "failed");
   const readiness = activeDocuments.length > 0 ? Math.round((readyDocuments.length / activeDocuments.length) * 100) : 0;
-  const nextAction = readyDocuments.length > 0 ? t.askFirstQuestion : t.uploadLibrary;
-  const nextActionDetail = readyDocuments.length > 0 ? t.readyToStudy : t.emptyLibraryText;
   const readinessLabel = readiness >= 80 ? t.readyToStudy : readiness > 0 ? t.buildingIndex : t.emptyLibraryTitle;
+  const nextStudyAction:
+    | { kind: "upload"; title: string; label: string; detail: string; icon: ReactNode }
+    | { kind: "view"; title: string; label: string; detail: string; icon: ReactNode; view: AppView } =
+    activeDocuments.length === 0
+      ? {
+          kind: "upload",
+          title: t.uploadFirstSource,
+          label: t.uploadPdf,
+          detail: t.emptyLibraryText,
+          icon: <Upload size={18} />,
+        }
+      : readyDocuments.length === 0
+        ? {
+            kind: "view",
+            title: t.sourcesProcessingTitle,
+            label: t.viewSourceStatus,
+            detail: processingDocuments.length > 0 ? `${processingDocuments.length} ${t.processing}` : t.buildingIndex,
+            icon: <Clock3 size={18} />,
+            view: "documents",
+          }
+        : artifacts.length > 0
+          ? {
+              kind: "view",
+              title: t.continuePractice,
+              label: t.continuePractice,
+              detail: `${artifacts.length} ${t.items} ${t.generated}`,
+              icon: <PlayCircle size={18} />,
+              view: "tools",
+            }
+          : {
+              kind: "view",
+              title: t.askTutorCta,
+              label: t.askTutorCta,
+              detail: t.readyToStudy,
+              icon: <MessageSquareText size={18} />,
+              view: "tutor",
+            };
   const cockpitStats = [
     { label: t.ready, value: readyDocuments.length.toString() },
     { label: t.processing, value: processingDocuments.length.toString() },
     { label: t.generated, value: artifacts.length.toString() },
   ];
-  const studyPlan = [
+  const studyPath = [
     {
       id: "upload",
-      title: activeDocuments.length === 0 ? t.uploadLibrary : t.recentMaterials,
-      detail: activeDocuments.length === 0 ? t.emptyLibraryText : `${activeDocuments.length} ${t.documents}`,
+      title: t.myMaterials,
+      detail: activeDocuments.length === 0 ? t.emptyLibraryTitle : `${readyDocuments.length}/${activeDocuments.length} ${t.sourcesReady}`,
       icon: <Upload size={17} />,
-      view: "documents" as const,
+      status: activeDocuments.length === 0 ? t.pending : readyDocuments.length > 0 ? t.ready : t.processing,
     },
     {
       id: "review",
-      title: t.askFirstQuestion,
-      detail: readyDocuments.length > 0 ? `${readyDocuments.length} ${t.sourcesReady}` : t.askFirstQuestionText,
+      title: t.aiTutor,
+      detail: readyDocuments.length > 0 ? t.tutorStatusReady : t.tutorStatusNoSources,
       icon: <MessageSquareText size={17} />,
-      view: "tutor" as const,
+      status: readyDocuments.length > 0 ? t.ready : t.waitingForSources,
     },
     {
       id: "tools",
-      title: artifacts.length > 0 ? t.generatedOutput : t.quickTools,
-      detail: artifacts.length > 0 ? `${artifacts.length} ${t.items}` : t.toolsNeedSources,
+      title: t.studyTools,
+      detail: artifacts.length > 0 ? `${artifacts.length} ${t.items}` : t.practicePreviewText,
       icon: <Sparkles size={17} />,
-      view: "tools" as const,
+      status: readyDocuments.length > 0 ? t.ready : t.waitingForSources,
     },
   ];
-  const recommendedSessions =
-    readyDocuments.length > 0
-      ? [
-          { title: t.createSummary, detail: `${readyDocuments.length} ${t.sourcesReady}`, tone: "mint", view: "tools" as const },
-          { title: t.createFlashcards, detail: t.practiceFlashcards, tone: "violet", view: "tools" as const },
-          { title: t.generateQuiz, detail: t.practiceExamQuestions, tone: "blue", view: "tools" as const },
-        ]
-      : [
-          { title: t.uploadLibrary, detail: t.emptyLibraryText, tone: "coral", view: "documents" as const },
-        ];
+  const practiceOptions = [
+    { title: t.createSummary, detail: t.apa_summaryDescription, icon: <FileText size={17} /> },
+    { title: t.createFlashcards, detail: t.flashcardsDescription, icon: <Layers3 size={17} /> },
+    { title: t.generateQuiz, detail: t.quizDescription, icon: <ClipboardList size={17} /> },
+  ];
+  const setupFlow = [
+    { label: t.setupStepSpace, icon: <BookOpen size={14} /> },
+    { label: t.setupStepSource, icon: <FileText size={14} /> },
+    { label: t.setupStepStudy, icon: <BrainCircuit size={14} /> },
+  ];
   const recommendations = [
     readyDocuments.length > 0 ? t.readyToStudy : t.buildingIndex,
     activeDocuments.length === 0 ? t.emptyLibraryText : `${activeDocuments.length} ${t.documents}`,
@@ -2306,7 +2201,7 @@ function RealStudentDashboard({
         <div className="liquid-hero-copy cockpit-hero-copy">
           <span className="liquid-kicker"><BrainCircuit size={16} /> {t.studyPulse}</span>
           <h2>{t.dashboard}, {firstName}</h2>
-          <p>{readyDocuments.length > 0 ? t.askFirstQuestionText : t.dashboardWelcome}</p>
+          <p>{nextStudyAction.detail}</p>
           <div className="cockpit-signal-strip" aria-label={t.learningPulse}>
             {cockpitStats.map((stat) => (
               <span key={stat.label}>
@@ -2315,21 +2210,26 @@ function RealStudentDashboard({
               </span>
             ))}
           </div>
-          <div className="liquid-hero-actions cockpit-hero-actions">
-            <LiquidButton className="liquid-primary-action cockpit-primary-action" onClick={onAsk}>
-              <MessageSquareText size={19} />
-              <span>{t.startStudy}</span>
-              <ChevronRight size={18} />
-            </LiquidButton>
-            <UploadControl disabled={busy === "upload"} loading={busy === "upload"} label={t.uploadPdf} onUpload={onUpload} />
-            <button className="liquid-secondary-chip" onClick={() => onSelectView("tools")} type="button">{t.quickTools}</button>
-          </div>
         </div>
         <aside className="liquid-next-panel cockpit-next-panel" aria-label={t.recommendedSessions}>
           <div className="cockpit-next-marker" aria-hidden="true" />
           <span>{t.recommendedSessions}</span>
-          <strong>{nextAction}</strong>
-          <p>{nextActionDetail}</p>
+          <strong>{nextStudyAction.title}</strong>
+          <p>{nextStudyAction.detail}</p>
+          {activeDocuments.length === 0 && (
+            <div className="cockpit-setup-flow" aria-label={t.emptyWorkspaceFlow}>
+              <div>
+                {setupFlow.map((step, index) => (
+                  <span key={step.label}>
+                    {step.icon}
+                    {step.label}
+                    {index < setupFlow.length - 1 && <ChevronRight size={12} />}
+                  </span>
+                ))}
+              </div>
+              <small>{t.emptyWorkspaceFlow}</small>
+            </div>
+          )}
           <div className="cockpit-next-footer">
             <div
               className="liquid-readiness-ring"
@@ -2338,10 +2238,15 @@ function RealStudentDashboard({
             >
               <b>{readiness}%</b>
             </div>
-            <button onClick={() => onSelectView(readyDocuments.length > 0 ? "tutor" : "documents")} type="button">
-              {readyDocuments.length > 0 ? t.askFirstQuestion : t.uploadLibrary}
-              <ArrowUpRight size={16} />
-            </button>
+            {nextStudyAction.kind === "upload" ? (
+              <UploadControl disabled={busy === "upload"} highlight loading={busy === "upload"} label={nextStudyAction.label} onUpload={onUpload} />
+            ) : (
+              <button onClick={() => onSelectView(nextStudyAction.view)} type="button">
+                {nextStudyAction.icon}
+                {nextStudyAction.label}
+                <ArrowUpRight size={16} />
+              </button>
+            )}
           </div>
         </aside>
       </section>
@@ -2350,13 +2255,15 @@ function RealStudentDashboard({
         <article className="liquid-card cockpit-course-card">
           <header>
             <span><BookOpen size={17} /> {t.myCourses}</span>
-            <button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button>
+            {nextStudyAction.kind !== "view" || nextStudyAction.view !== "documents" ? (
+              <button onClick={() => onSelectView("documents")} type="button">{t.openSources}</button>
+            ) : null}
           </header>
           <div className="cockpit-course-main">
             <div>
               <small>{t.currentSpace}</small>
               <strong>{activeSpace?.name ?? t.noSpaceTitle}</strong>
-              <p>{activeSpace?.description ?? t.personalWorkspace}</p>
+              <p>{activeSpace ? activeSpace.description ?? t.personalWorkspace : t.noSpaceDescription}</p>
             </div>
             <em>{readyDocuments.length}/{Math.max(activeDocuments.length, 1)}</em>
           </div>
@@ -2380,7 +2287,9 @@ function RealStudentDashboard({
         <article className="liquid-card cockpit-materials-card">
           <header>
             <span><FileText size={17} /> {t.recentMaterials}</span>
-            <button onClick={() => onSelectView("documents")} type="button">{t.viewAll}</button>
+            {nextStudyAction.kind !== "view" || nextStudyAction.view !== "documents" ? (
+              <button onClick={() => onSelectView("documents")} type="button">{t.openSources}</button>
+            ) : null}
           </header>
           <div className="liquid-list cockpit-material-list">
             {materials.map((document, index) => (
@@ -2398,25 +2307,29 @@ function RealStudentDashboard({
 
         <article className="liquid-card cockpit-plan-card">
           <header>
-            <span><Clock3 size={17} /> {t.upcomingExams}</span>
-            <button onClick={() => onSelectView("tools")} type="button">{t.viewAll}</button>
+            <span><Clock3 size={17} /> {t.studyPathTitle}</span>
           </header>
-          <div className="liquid-plan-list cockpit-plan-list">
-            {studyPlan.map((item, index) => (
-              <button key={item.id} onClick={() => onSelectView(item.view)} type="button">
+          <div className="cockpit-path-list">
+            {studyPath.map((item, index) => (
+              <div key={item.id} className="cockpit-path-step">
                 <span>{index + 1}</span>
-                <strong>{item.title}</strong>
-                <small>{item.detail}</small>
+                <div>
+                  <strong>{item.title}</strong>
+                  <small>{item.detail}</small>
+                </div>
+                <em>{item.status}</em>
                 {item.icon}
-              </button>
+              </div>
             ))}
           </div>
         </article>
 
         <article className="liquid-card liquid-card-tutor cockpit-tutor-card">
           <header>
-            <span><Sparkles size={17} /> {t.tutorRecommendations}</span>
-            <button onClick={() => onSelectView("tutor")} type="button">{t.viewMoreRecommendations}</button>
+            <span><Sparkles size={17} /> {t.tutorStatusTitle}</span>
+            {nextStudyAction.kind !== "view" || nextStudyAction.view !== "tutor" ? (
+              <button onClick={() => onSelectView("tutor")} type="button">{t.openTutor}</button>
+            ) : null}
           </header>
           <div className="liquid-tutor-body">
             <MentoraMascot />
@@ -2426,44 +2339,23 @@ function RealStudentDashboard({
               ))}
             </ul>
           </div>
-          <button className="cockpit-tutor-action" onClick={() => onSelectView("tutor")} type="button">
-            {t.startStudy}
-            <ChevronRight size={16} />
-          </button>
         </article>
 
         <article className="liquid-card cockpit-tools-card">
           <header>
-            <span><WandSparkles size={17} /> {t.quickTools}</span>
+            <span><WandSparkles size={17} /> {t.practicePreviewTitle}</span>
+            {nextStudyAction.kind !== "view" || nextStudyAction.view !== "tools" ? (
+              <button onClick={() => onSelectView("tools")} type="button">{t.openPractice}</button>
+            ) : null}
           </header>
-          <div className="liquid-tools-grid cockpit-tools-grid">
-            {[
-              [t.createSummary, <FileText key="summary" size={20} />, "tools"],
-              [t.createFlashcards, <Layers3 key="cards" size={20} />, "tools"],
-              [t.generateQuiz, <ClipboardList key="quiz" size={20} />, "tools"],
-              [t.uploadLibrary, <Upload key="upload" size={20} />, "documents"],
-            ].map(([label, icon, view]) => (
-              <button key={String(label)} onClick={() => onSelectView(view as AppView)} type="button">
-                {icon}
-                <span>{label}</span>
-              </button>
-            ))}
-          </div>
-        </article>
-
-        <article className="liquid-card liquid-card-sessions cockpit-sessions-card">
-          <header>
-            <span><PlayCircle size={17} /> {t.recommendedSessions}</span>
-            <button onClick={() => onSelectView("tools")} type="button">{t.viewAll}</button>
-          </header>
-          <div className="liquid-session-list cockpit-session-list">
-            {recommendedSessions.map((session) => (
-              <button key={session.title} className={`tone-${session.tone}`} onClick={() => onSelectView(session.view)} type="button">
-                <Sparkles size={17} />
-                <span>{session.title}</span>
-                <small>{session.detail}</small>
-                <PlayCircle size={18} />
-              </button>
+          <p className="cockpit-card-note">{t.practicePreviewText}</p>
+          <div className="cockpit-practice-preview">
+            {practiceOptions.map((option) => (
+              <div key={option.title}>
+                <span>{option.icon}</span>
+                <strong>{option.title}</strong>
+                <small>{option.detail}</small>
+              </div>
             ))}
           </div>
         </article>
@@ -2548,7 +2440,7 @@ function TutorStudio({
           <div>
             <span className="student-section-kicker">
               <BrainCircuit size={16} />
-              Tutor IA
+              {t.aiTutor}
             </span>
             <h2>{t.tutorConsole}</h2>
             <p className="mb-2">{t.tutorConsoleSubcopy}</p>
@@ -2559,31 +2451,33 @@ function TutorStudio({
               mode={selectedMode}
             />
           </div>
-          <div className="student-chat-actions">
-            <ChatModeSelector
-              mode={selectedMode}
-              onChange={onSelectMode}
-              t={t}
-            />
-            <ModelSelector
-              models={models}
-              openRouterConnected={openRouterConnected}
-              openRouterServerConnected={openRouterServerConnected}
-              selectedModel={selectedModel}
-              t={t}
-              onSelect={onSelectModel}
-            />
-            <UploadControl
-              disabled={busy === "upload"}
-              highlight={needsSources}
-              loading={busy === "upload"}
-              label={t.uploadPdf}
-              onUpload={onUpload}
-            />
+          <div className="student-chat-actions tutor-chat-actions">
             <span className={`status-pill ${readyDocuments.length > 0 ? "is-ready" : "is-muted"}`}>
               <span className="h-2 w-2 rounded-full bg-current" />
               {readyDocuments.length > 0 ? t.sourcesReady : t.waitingForSources}
             </span>
+            <details className="tutor-settings-panel">
+              <summary>
+                <Settings2 size={16} />
+                {t.advancedSettings}
+              </summary>
+              <div>
+                <span>{t.modelAndMode}</span>
+                <ChatModeSelector
+                  mode={selectedMode}
+                  onChange={onSelectMode}
+                  t={t}
+                />
+                <ModelSelector
+                  models={models}
+                  openRouterConnected={openRouterConnected}
+                  openRouterServerConnected={openRouterServerConnected}
+                  selectedModel={selectedModel}
+                  t={t}
+                  onSelect={onSelectModel}
+                />
+              </div>
+            </details>
           </div>
         </div>
 
@@ -2624,7 +2518,17 @@ function TutorStudio({
             <DocumentMini key={document.id} document={document} t={t} />
           ))}
           {readyDocuments.length === 0 && (
-            <EmptyState compact icon={<FileText size={18} />} title={t.noReadyDocs} text={t.noReadyDocsText} />
+            <div className="tutor-source-empty">
+              <EmptyState compact icon={<FileText size={18} />} title={t.noReadyDocs} text={t.noReadyDocsText} />
+              <UploadControl
+                disabled={busy === "upload"}
+                highlight={needsSources}
+                loading={busy === "upload"}
+                label={t.uploadPdf}
+                onUpload={onUpload}
+                wide
+              />
+            </div>
           )}
           {busy === "chat" && (
             <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-sm text-cyan-100">
@@ -2706,7 +2610,12 @@ function ToolStudio({
   activeSpace,
   busy,
   hasReadySources,
+  models,
+  openRouterConnected,
+  openRouterServerConnected,
   onGenerate,
+  onSelectModel,
+  onUpload,
   selectedModel,
   t,
 }: {
@@ -2714,39 +2623,86 @@ function ToolStudio({
   activeSpace: StudySpace | null;
   busy: string | null;
   hasReadySources: boolean;
+  models: ModelOption[];
+  openRouterConnected: boolean;
+  openRouterServerConnected: boolean;
   onGenerate: (kind: ToolKind) => void;
+  onSelectModel: (modelId: string) => void;
+  onUpload: (file: File) => void;
   selectedModel: string;
   t: Record<string, string>;
 }) {
+  const [selectedKind, setSelectedKind] = useState<ToolKind>("quiz");
+  const selectedBusy = busy === selectedKind;
+
   return (
-    <div className="miro-studio-grid h-full min-h-[560px] gap-4 xl:grid-cols-[340px_minmax(0,1fr)]">
-      <section className="space-y-3">
-        {toolKinds.map((kind) => (
-          <button
-            key={kind}
-            className={`tool-card bg-gradient-to-br ${toolMeta[kind].tone}`}
-            disabled={!activeSpace || !hasReadySources || busy === kind}
-            onClick={() => onGenerate(kind)}
-            type="button"
-          >
-            <span className="flex h-11 w-11 items-center justify-center rounded-2xl bg-white/10">
-              {busy === kind ? <Loader2 className="animate-spin" size={18} /> : toolMeta[kind].icon}
-            </span>
-            <span className="min-w-0 flex-1 text-left">
-              <span className="block text-base font-semibold text-white">{t[kind]}</span>
-              <span className="mt-1 block text-sm leading-5 text-slate-300">{t[`${kind}Description`]}</span>
-            </span>
-            <ArrowUpRight size={18} />
-          </button>
-        ))}
-        {!hasReadySources && (
-          <div className="rounded-3xl border border-amber-300/20 bg-amber-300/10 p-4 text-sm leading-6 text-amber-50">
-            {t.toolsNeedSources}
+    <div className="practice-studio-grid h-full min-h-[560px] gap-4">
+      <section className="practice-generator-panel">
+        <header>
+          <span><WandSparkles size={16} /> {t.studyTools}</span>
+          <h2>{t.toolsTitle}</h2>
+          {hasReadySources && <p>{t.practicePreviewText}</p>}
+        </header>
+
+        {hasReadySources ? (
+          <>
+            <div className="practice-segmented" role="tablist" aria-label={t.studyTools}>
+              {toolKinds.map((kind) => {
+                const isSelected = selectedKind === kind;
+                return (
+                  <button
+                    key={kind}
+                    aria-selected={isSelected}
+                    className={isSelected ? "is-selected" : ""}
+                    onClick={() => setSelectedKind(kind)}
+                    role="tab"
+                    type="button"
+                  >
+                    {toolMeta[kind].icon}
+                    <span>{t[kind]}</span>
+                  </button>
+                );
+              })}
+            </div>
+
+            <div className="practice-selected-card">
+              <span>{selectedBusy ? <Loader2 className="animate-spin" size={20} /> : toolMeta[selectedKind].icon}</span>
+              <div>
+                <strong>{t[selectedKind]}</strong>
+                <p>{t[`${selectedKind}Description`]}</p>
+              </div>
+              <button
+                disabled={!activeSpace || selectedBusy}
+                onClick={() => onGenerate(selectedKind)}
+                type="button"
+              >
+                {selectedBusy ? <Loader2 className="animate-spin" size={17} /> : <Sparkles size={17} />}
+                {t.generate}
+              </button>
+            </div>
+          </>
+        ) : (
+          <div className="practice-source-needed">
+            <EmptyState compact icon={<FileText size={18} />} title={t.noSourcesTitle} text={t.toolsNeedSources} />
+            <UploadControl disabled={busy === "upload"} highlight loading={busy === "upload"} label={t.uploadPdf} onUpload={onUpload} wide />
           </div>
         )}
-        <div className="rounded-3xl border border-cyan-300/20 bg-cyan-300/10 p-4 text-xs leading-5 text-cyan-100">
-          {t.aiModel}: {selectedModel}
-        </div>
+
+        <details className="practice-model-control">
+          <summary>
+            <Sparkles size={15} />
+            <span>{t.aiModel}</span>
+            <small>{selectedModel}</small>
+          </summary>
+          <ModelSelector
+            models={models}
+            openRouterConnected={openRouterConnected}
+            openRouterServerConnected={openRouterServerConnected}
+            selectedModel={selectedModel}
+            t={t}
+            onSelect={onSelectModel}
+          />
+        </details>
       </section>
 
       <section className="generated-panel min-h-0 rounded-3xl border border-white/10 bg-slate-950/55 p-4">
@@ -3187,9 +3143,14 @@ function ProfileStudio({
                 ))}
               </datalist>
             </div>
-            <button className="primary-button h-12 justify-center" disabled={busy === "profile" || !profileReady} onClick={onSaveProfile} type="button">
+            <button
+              className="profile-save-button"
+              disabled={busy === "profile" || !profileReady}
+              onClick={onSaveProfile}
+              type="button"
+            >
               {busy === "profile" ? <Loader2 className="animate-spin" size={18} /> : <CheckCircle2 size={18} />}
-              {t.saveStudentData}
+              <span>{t.saveStudentData}</span>
             </button>
           </section>
 
@@ -3283,65 +3244,6 @@ function ProfileStudio({
         </div>
       </section>
     </div>
-  );
-}
-
-function InsightPanel({
-  artifacts,
-  documents,
-  loading,
-  profile,
-  readyDocuments,
-  t,
-}: {
-  artifacts: GeneratedArtifact[];
-  documents: DocumentRecord[];
-  loading: boolean;
-  profile: Profile | null;
-  readyDocuments: DocumentRecord[];
-  t: Record<string, string>;
-}) {
-  const readiness = documents.length > 0 ? Math.round((readyDocuments.length / documents.length) * 100) : 0;
-  const recentItems = [
-    ...documents.slice(0, 3).map((document) => ({ id: document.id, kind: "document" as const, node: <DocumentMini document={document} t={t} /> })),
-    ...artifacts.slice(0, 2).map((artifact) => ({ id: artifact.id, kind: "artifact" as const, node: <ArtifactMini artifact={artifact} t={t} /> })),
-  ];
-
-  return (
-    <section className="liquid-study-pulse" aria-label={t.studyPulse}>
-      <div className="liquid-pulse-header">
-        <div>
-          <span>{t.studyPulse}</span>
-          <h2>{profile?.full_name ?? profile?.email ?? t.student}</h2>
-        </div>
-        <span className="liquid-pulse-icon">
-          {loading ? <Loader2 className="animate-spin" size={18} /> : <Flame size={18} />}
-        </span>
-      </div>
-
-      <div className="liquid-pulse-score">
-        <strong>{readiness}%</strong>
-        <span>{readiness > 0 ? t.readyToStudy : t.buildingIndex}</span>
-        <div><i style={{ width: `${readiness}%` }} /></div>
-      </div>
-
-      <div className="liquid-pulse-metrics">
-        <ProgressRow label={t.sourcesReady} value={readyDocuments.length} total={Math.max(documents.length, 1)} />
-        <ProgressRow label={t.generatedOutput} value={artifacts.length} total={Math.max(artifacts.length + 2, 3)} />
-      </div>
-
-      <div className="liquid-recent-activity">
-        <h3>{t.recentActivity}</h3>
-        <div className="liquid-activity-list">
-          {recentItems.map((item) => (
-            <div key={`${item.kind}-${item.id}`}>{item.node}</div>
-          ))}
-          {recentItems.length === 0 && (
-            <EmptyState compact icon={<Sparkles size={18} />} title={t.emptyActivityTitle} text={t.emptyActivityText} />
-          )}
-        </div>
-      </div>
-    </section>
   );
 }
 
@@ -3801,25 +3703,6 @@ function OpenRouterConnectDialog({
   );
 }
 
-function Metric({
-  icon,
-  label,
-  value,
-  tone = "default",
-}: {
-  icon: ReactNode;
-  label: string;
-  value: string;
-  tone?: "default" | "success" | "warning" | "danger" | "accent";
-}) {
-  return (
-    <div className={`metric-card metric-${tone}`}>
-      <div className="flex items-center gap-2 text-xs font-bold uppercase text-slate-400">{icon}{label}</div>
-      <p className="mt-2 text-2xl font-semibold text-white">{value}</p>
-    </div>
-  );
-}
-
 function EmptyState({
   compact = false,
   icon,
@@ -4011,20 +3894,6 @@ function FlashcardDeck({
   );
 }
 
-function ArtifactMini({ artifact, t }: { artifact: GeneratedArtifact; t: Record<string, string> }) {
-  return (
-    <div className="mini-row">
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-violet-300/10 text-violet-100">
-        <Sparkles size={16} />
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className="block truncate text-sm font-semibold text-white">{artifact.title}</span>
-        <span className="block truncate text-xs text-slate-400">{t[artifact.kind] ?? artifact.kind}</span>
-      </span>
-    </div>
-  );
-}
-
 function StatusBadge({ status, t }: { status: DocumentRecord["processing_status"]; t: Record<string, string> }) {
   return (
     <span className={`status-badge status-${status}`}>
@@ -4064,22 +3933,6 @@ function ProfileFact({
     <div className={`rounded-2xl border border-white/10 bg-white/[0.04] ${compact ? "p-2" : "p-3"}`}>
       <p className="text-[11px] font-bold uppercase text-slate-500">{label}</p>
       <p className="mt-1 break-words text-sm font-semibold text-slate-100">{value}</p>
-    </div>
-  );
-}
-
-function ProgressRow({ label, value, total }: { label: string; value: number; total: number }) {
-  const percent = Math.min(100, Math.round((value / Math.max(total, 1)) * 100));
-
-  return (
-    <div>
-      <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-300">
-        <span>{label}</span>
-        <span>{value}</span>
-      </div>
-      <div className="h-2 overflow-hidden rounded-full bg-white/10">
-        <div className="h-full rounded-full bg-cyan-300 transition-[width] duration-500" style={{ width: `${percent}%` }} />
-      </div>
     </div>
   );
 }
