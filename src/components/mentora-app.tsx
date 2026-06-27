@@ -2402,39 +2402,29 @@ function TutorStudio({
           placeholder={t.ask}
           buttonLabel={t.send}
           onSend={onSend}
+          onUploadFile={onUpload}
         />
       </section>
 
-      <aside className="student-context-panel">
-        <div className="student-context-title">
-          <PanelRightOpen size={17} />
-          {t.liveContext}
-        </div>
-        <div className="space-y-3">
-          {readyDocuments.slice(0, 5).map((document) => (
-            <DocumentMini key={document.id} document={document} t={t} />
-          ))}
-          {readyDocuments.length === 0 && (
-            <div className="tutor-source-empty">
-              <EmptyState compact icon={<FileText size={18} />} title={t.noReadyDocs} text={t.noReadyDocsText} />
-              <UploadControl
-                disabled={busy === "upload"}
-                highlight={needsSources}
-                loading={busy === "upload"}
-                label={t.uploadPdf}
-                onUpload={onUpload}
-                wide
-              />
-            </div>
-          )}
-          {busy === "chat" && (
-            <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-sm text-cyan-100">
-              <Loader2 className="mr-2 inline animate-spin" size={16} />
-              {t.tutorThinking}
-            </div>
-          )}
-        </div>
-      </aside>
+      {readyDocuments.length > 0 && (
+        <aside className="student-context-panel">
+          <div className="student-context-title">
+            <PanelRightOpen size={17} />
+            {t.liveContext}
+          </div>
+          <div className="space-y-3">
+            {readyDocuments.slice(0, 5).map((document) => (
+              <DocumentMini key={document.id} document={document} t={t} />
+            ))}
+            {busy === "chat" && (
+              <div className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-sm text-cyan-100">
+                <Loader2 className="mr-2 inline animate-spin" size={16} />
+                {t.tutorThinking}
+              </div>
+            )}
+          </div>
+        </aside>
+      )}
     </div>
   );
 }
@@ -2451,20 +2441,191 @@ function DocumentStudio({
   t: Record<string, string>;
 }) {
   return (
-    <div className="miro-studio-grid h-full min-h-[560px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
-      <section className="upload-dropzone miro-side-panel">
+    <div className="flex h-full min-h-[560px] items-start justify-center">
+      <style suppressHydrationWarning>{`
+.upload-glass-panel {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  min-height: 520px;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 14px;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 32px !important;
+  background:
+    radial-gradient(ellipse 120% 80% at 90% -10%, rgba(255, 255, 255, 0.95), transparent 55%),
+    radial-gradient(ellipse 60% 40% at 0% 110%, rgba(79, 70, 229, 0.07), transparent 50%),
+    radial-gradient(ellipse 50% 30% at 100% 50%, rgba(6, 182, 212, 0.04), transparent 50%),
+    rgba(255, 255, 255, 0.72) !important;
+  backdrop-filter: blur(40px) saturate(200%) !important;
+  -webkit-backdrop-filter: blur(40px) saturate(200%) !important;
+  padding: 40px 32px !important;
+  box-shadow:
+    inset 0 1px 0 0 rgba(255, 255, 255, 0.9),
+    0 4px 16px rgba(15, 23, 42, 0.04),
+    0 24px 64px rgba(79, 70, 229, 0.06) !important;
+}
+.upload-glass-panel::before {
+  position: absolute;
+  inset: 16px;
+  content: "";
+  border: 1.5px dashed rgba(79, 70, 229, 0.1);
+  border-radius: 20px;
+  pointer-events: none;
+}
+.upload-glass-panel::after {
+  content: "";
+  position: absolute;
+  top: -80px;
+  right: -40px;
+  width: 240px;
+  height: 240px;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(79, 70, 229, 0.06), transparent 70%);
+  pointer-events: none;
+  z-index: 0;
+}
+.upload-glass-panel > * {
+  position: relative;
+  z-index: 1;
+}
+.upload-glass-panel .brand-mark {
+  display: grid;
+  width: 52px;
+  height: 52px;
+  place-items: center;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(145deg, #4f46e5, #6366f1) !important;
+  color: #ffffff !important;
+  box-shadow: 0 10px 28px rgba(79, 70, 229, 0.25), inset 0 1px 0 rgba(255, 255, 255, 0.4) !important;
+}
+.upload-glass-panel .brand-mark svg {
+  width: 22px;
+  height: 22px;
+}
+.upload-glass-panel h2 {
+  margin-top: 8px;
+  color: #0f172a !important;
+  font-size: 24px !important;
+  font-weight: 720 !important;
+  letter-spacing: -0.03em !important;
+  line-height: 1.15 !important;
+}
+.upload-glass-panel > p {
+  margin: 0;
+  color: #475569 !important;
+  font-size: 13.5px !important;
+  line-height: 1.65 !important;
+  max-width: 420px;
+}
+.upload-note {
+  margin-top: 8px;
+  border: 1px solid rgba(255, 255, 255, 0.55) !important;
+  border-radius: 16px !important;
+  background: rgba(255, 255, 255, 0.55) !important;
+  backdrop-filter: blur(12px) !important;
+  -webkit-backdrop-filter: blur(12px) !important;
+  padding: 14px 16px !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  line-height: 1.55 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+}
+.upload-glass-panel .miro-panel-kicker {
+  margin-top: 6px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.75) !important;
+  backdrop-filter: blur(8px) !important;
+  -webkit-backdrop-filter: blur(8px) !important;
+  padding: 0 12px !important;
+  color: #4f46e5 !important;
+  font-size: 10.5px !important;
+  font-weight: 700 !important;
+  letter-spacing: 0.05em !important;
+  text-transform: uppercase !important;
+  box-shadow: 0 2px 8px rgba(79, 70, 229, 0.06) !important;
+}
+.upload-glass-panel .miro-upload-orbit {
+  display: flex !important;
+  flex-wrap: wrap !important;
+  align-items: center !important;
+  gap: 8px !important;
+  margin: 10px 0 !important;
+}
+.upload-glass-panel .miro-upload-orbit span {
+  display: inline-flex !important;
+  align-items: center !important;
+  min-height: 30px !important;
+  margin-left: 0 !important;
+  border: 1px solid rgba(255, 255, 255, 0.5) !important;
+  border-radius: 999px !important;
+  background: rgba(255, 255, 255, 0.65) !important;
+  backdrop-filter: blur(6px) !important;
+  -webkit-backdrop-filter: blur(6px) !important;
+  padding: 0 14px !important;
+  color: #475569 !important;
+  font-size: 12.5px !important;
+  font-weight: 550 !important;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.6) !important;
+  transition: all 0.2s ease !important;
+}
+.upload-glass-panel .miro-upload-orbit span:nth-child(2) {
+  background: rgba(255, 255, 255, 0.72) !important;
+}
+.upload-glass-panel .miro-upload-orbit span:nth-child(3) {
+  background: rgba(255, 255, 255, 0.68) !important;
+}
+.upload-glass-panel .upload-button {
+  display: inline-flex !important;
+  width: 100% !important;
+  min-height: 48px !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 10px !important;
+  border: 0 !important;
+  border-radius: 16px !important;
+  background: linear-gradient(140deg, #4f46e5 0%, #6366f1 40%, #06b6d4 100%) !important;
+  color: #ffffff !important;
+  font-size: 14.5px !important;
+  font-weight: 650 !important;
+  letter-spacing: -0.01em !important;
+  box-shadow:
+    0 10px 32px rgba(79, 70, 229, 0.28),
+    inset 0 1px 0 rgba(255, 255, 255, 0.3) !important;
+  transition: all 0.3s cubic-bezier(0.2, 0.8, 0.2, 1) !important;
+  cursor: pointer !important;
+}
+.upload-glass-panel .upload-button:hover {
+  background: linear-gradient(140deg, #4338ca 0%, #4f46e5 40%, #0891b2 100%) !important;
+  transform: translateY(-2px) !important;
+  box-shadow: 0 16px 40px rgba(79, 70, 229, 0.38) !important;
+}
+.upload-glass-panel .upload-button:active {
+  transform: translateY(0) scale(0.97) !important;
+  box-shadow: 0 6px 20px rgba(79, 70, 229, 0.22) !important;
+}
+      `}</style>
+
+      <section className="miro-side-panel upload-glass-panel w-full max-w-lg">
         <div className="brand-mark h-12 w-12">
           {busy === "upload" ? <Loader2 className="animate-spin" size={22} /> : <Upload size={22} />}
         </div>
         <span className="miro-panel-kicker">{t.documents}</span>
-        <h2 className="mt-4 text-2xl font-semibold text-white">{t.uploadLibrary}</h2>
-        <p className="mt-3 text-sm leading-6 text-slate-300">{t.uploadLibraryText}</p>
+        <h2>{t.uploadLibrary}</h2>
+        <p>{t.uploadLibraryText}</p>
         <div className="miro-upload-orbit" aria-hidden="true">
           <span>{t.uploadPdf}</span>
           <span>{t.sourceLibrary}</span>
           <span>{t.sourcesReady}</span>
         </div>
-        <p className="rounded-2xl border border-cyan-300/20 bg-cyan-300/10 p-3 text-xs leading-5 text-cyan-100">
+        <p className="upload-note">
           {t.uploadStartsAutomatically}
         </p>
         <UploadControl
@@ -2474,29 +2635,6 @@ function DocumentStudio({
           onUpload={onUpload}
           wide
         />
-      </section>
-
-      <section className="source-library-panel rounded-3xl border border-white/10 bg-slate-950/55 p-4">
-        <div className="mb-4 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-lg font-semibold text-white">{t.sourceLibrary}</h2>
-            <p className="mt-1 text-sm text-slate-400">{t.sourceLibraryText}</p>
-          </div>
-          <span className="status-pill is-muted">{activeDocuments.length} {t.sources}</span>
-        </div>
-
-        <div className="panel-scroll-shell">
-          <div className="panel-scroll-area grid gap-3 md:grid-cols-2">
-            {activeDocuments.map((document) => (
-              <DocumentCard key={document.id} document={document} t={t} />
-            ))}
-            {activeDocuments.length === 0 && (
-              <div className="md:col-span-2">
-                <EmptyState icon={<FileText size={28} />} title={t.emptyLibraryTitle} text={t.emptyLibraryText} />
-              </div>
-            )}
-          </div>
-        </div>
       </section>
     </div>
   );
@@ -2964,7 +3102,7 @@ function ProfileStudio({
   }
 
   return (
-    <div className="miro-studio-grid h-full min-h-[560px] gap-4 xl:grid-cols-[320px_minmax(0,1fr)]">
+    <div className="flex h-full min-h-[560px] items-start justify-center">
       <section className="profile-hero-card rounded-3xl border border-white/10 bg-gradient-to-br from-white/[0.08] to-cyan-300/[0.04] p-5">
         <div className="profile-avatar-stack">
           <div className="profile-avatar-frame" aria-label={t.avatar}>

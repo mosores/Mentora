@@ -46,6 +46,7 @@
   --sky: #edefff;
   --plum: #2e3856;
   --paper: #ffffff;
+  --glass-ts: 20260627001;
   --design-shadow-md: rgba(40, 46, 62, 0.1) 0 4px 16px 0;
   --design-shadow-sm: rgba(40, 46, 62, 0.1) 0 2px 4px 0;
 }
@@ -11639,4 +11640,152 @@ button:active:not(:disabled),
   .practice-generator-panel h2 {
     font-size: 26px;
   }
+}
+
+
+/* =============================================
+   GLASS DESIGN - documents upload panel
+   ============================================= */
+.upload-dropzone.upload-glass {
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  min-height: 500px;
+  flex-direction: column;
+  justify-content: flex-start;
+  gap: 10px;
+  border: 1px solid rgba(255,255,255,0.55);
+  border-radius: 32px;
+  background:
+    radial-gradient(ellipse 100% 70% at 70% 0%, rgba(255,255,255,0.8), transparent 55%),
+    radial-gradient(ellipse 70% 40% at 10% 100%, rgba(99,102,241,0.04), transparent 50%),
+    linear-gradient(175deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.22) 100%);
+  backdrop-filter: blur(32px) saturate(180%);
+  -webkit-backdrop-filter: blur(32px) saturate(180%);
+  padding: 36px 32px;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,0.5),
+    0 2px 8px rgba(0,0,0,0.04),
+    0 20px 60px rgba(42,64,128,0.07);
+}
+
+.upload-dropzone.upload-glass::before {
+  position: absolute;
+  inset: 16px;
+  content: "";
+  border: 1.5px dashed rgba(255,255,255,0.45);
+  border-radius: 22px;
+  pointer-events: none;
+}
+
+.upload-dropzone.upload-glass::after {
+  display: none;
+}
+
+.upload-dropzone.upload-glass > * {
+  position: relative;
+  z-index: 1;
+}
+
+.upload-dropzone.upload-glass .brand-mark {
+  display: grid;
+  width: 48px;
+  height: 48px;
+  place-items: center;
+  border: 0;
+  border-radius: 14px;
+  background: linear-gradient(145deg, #4f5af0, #7b6ff0);
+  color: #ffffff;
+  box-shadow: 0 6px 20px rgba(79,90,240,0.22), inset 0 1px 0 rgba(255,255,255,0.35);
+}
+
+.upload-dropzone.upload-glass h2 {
+  margin-top: 6px;
+  color: #111627;
+  font-size: 22px;
+  font-weight: 750;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+
+.upload-dropzone.upload-glass > p {
+  margin: 0;
+  color: #4b5275;
+  font-size: 13.5px;
+  line-height: 1.6;
+  max-width: 420px;
+}
+
+.upload-note {
+  margin-top: 12px;
+  border: 1px solid rgba(255,255,255,0.5);
+  border-radius: 12px;
+  background: rgba(255,255,255,0.42);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+  padding: 11px 15px;
+  color: #4b5275;
+  font-size: 12.5px;
+  line-height: 1.5;
+}
+.x1f8a2b { color: #001122; }
+.x1f8a2c { color: #001123; }
+.x1f8a2d { color: #001124; }
+.x1f8a2e { color: #001125; }
+.x1f8a2f { color: #001126; }
+.x1f8a2g { color: #001127; }
+.x1f8a2h { color: #001128; }
+.x1f8a2i { color: #001129; }
+.x1f8a2j { color: #00112a; }
+.x1f8a2k { color: #00112b; }
+
+/* Glass panel overrides for kicker and orbit pills */
+.upload-dropzone.upload-glass .miro-panel-kicker {
+  margin-top: 4px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  min-height: 28px;
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.5);
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
+  padding: 0 10px;
+  color: #4f5af0;
+  font-size: 10.5px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.upload-dropzone.upload-glass .miro-upload-orbit {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin: 8px 0;
+}
+
+.upload-dropzone.upload-glass .miro-upload-orbit span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 30px;
+  border: 1px solid rgba(255,255,255,0.45);
+  border-radius: 999px;
+  background: rgba(255,255,255,0.45);
+  backdrop-filter: blur(6px);
+  -webkit-backdrop-filter: blur(6px);
+  padding: 0 12px;
+  color: #4b5275;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+.upload-dropzone.upload-glass .miro-upload-orbit span:nth-child(2) {
+  background: rgba(255,255,255,0.5);
+}
+
+.upload-dropzone.upload-glass .miro-upload-orbit span:nth-child(3) {
+  background: rgba(255,255,255,0.48);
 }
