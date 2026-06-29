@@ -1625,31 +1625,50 @@ export function MentoraApp() {
 
     setBusy(kind);
     setError(null);
-    const token = (await supabase.auth.getSession()).data.session?.access_token;
-    const response = await fetch("/api/tools", {
-      method: "POST",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify({
-        studySpaceId,
-        kind,
-        locale,
-        model: selectedModel,
-        openRouterApiKey: selectedOpenRouterApiKey(),
-        selectedDocumentIds,
-      }),
-    });
-    const payload = await response.json();
-    setBusy(null);
+    try {
+      const token = (await supabase.auth.getSession()).data.session?.access_token;
+      const response = await fetch("/api/tools", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          studySpaceId,
+          kind,
+          locale,
+          model: selectedModel,
+          openRouterApiKey: selectedOpenRouterApiKey(),
+          selectedDocumentIds,
+        }),
+      });
+      const payload = (await response.json().catch(() => ({}))) as {
+        artifact?: GeneratedArtifact;
+        error?: string;
+      };
 
-    if (!response.ok) {
-      setError(payload.error ?? "Generation failed.");
-      return;
+      if (!response.ok) {
+        setError(
+          response.status === 409
+            ? "No ready source chunks found. Wait for processing or upload another source."
+            : payload.error ?? "Generation failed.",
+        );
+        return;
+      }
+
+      if (!payload.artifact) {
+        setError("Generation finished without a Studio output.");
+        return;
+      }
+
+      const artifact = payload.artifact;
+      setArtifacts((current) => [artifact, ...current]);
+    } catch (caught) {
+      reportClientError("Study tool generation failed", caught);
+      setError("Generation failed. Check your connection and try again.");
+    } finally {
+      setBusy(null);
     }
-
-    setArtifacts((current) => [payload.artifact, ...current]);
   }
 }
 

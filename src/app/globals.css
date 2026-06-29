@@ -13493,6 +13493,7 @@ button:active:not(:disabled),
 }
 
 .notebook-tool-tile * {
+  pointer-events: none;
   -webkit-user-select: none;
   user-select: none;
 }
@@ -13535,6 +13536,10 @@ button:active:not(:disabled),
 .notebook-tool-tile:not(.is-disabled):not(.is-coming-soon):hover {
   transform: translateY(-1px);
   filter: saturate(1.05);
+}
+
+.notebook-tool-tile:focus-visible {
+  box-shadow: var(--nb-focus);
 }
 
 .notebook-tool-tile.is-disabled,
