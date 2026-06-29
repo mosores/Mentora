@@ -44,22 +44,22 @@ type StudyStudioPanelProps = {
 };
 
 const tools: Array<{ kind: ToolKind; label: string; helper: string; icon: ReactNode; tone: string }> = [
-  { kind: "summary", label: "Summary", helper: "Key ideas", icon: <BookOpen size={17} />, tone: "tone-sand" },
-  { kind: "quiz", label: "Quiz", helper: "Practice questions", icon: <ClipboardList size={17} />, tone: "tone-cyan" },
-  { kind: "flashcards", label: "Flashcards", helper: "Fast review", icon: <Layers3 size={17} />, tone: "tone-red" },
-  { kind: "mind_map", label: "Mind Map", helper: "Concept links", icon: <BrainCircuit size={17} />, tone: "tone-pink" },
-  { kind: "apa_summary", label: "APA Summary", helper: "Academic format", icon: <FileText size={17} />, tone: "tone-green" },
-  { kind: "data_table", label: "Data Table", helper: "Structured view", icon: <Table2 size={17} />, tone: "tone-blue" },
-  { kind: "study_guide", label: "Study Guide", helper: "Review plan", icon: <BarChart3 size={17} />, tone: "tone-sand" },
-  { kind: "diagram", label: "Diagram", helper: "Flow view", icon: <BrainCircuit size={17} />, tone: "tone-green" },
-  { kind: "infographic", label: "Infographic", helper: "Visual brief", icon: <Sparkles size={17} />, tone: "tone-pink" },
+  { kind: "summary", label: "Summary", helper: "Key ideas", icon: <BookOpen size={17} />, tone: "notebook-tone-sand" },
+  { kind: "quiz", label: "Quiz", helper: "Practice questions", icon: <ClipboardList size={17} />, tone: "notebook-tone-cyan" },
+  { kind: "flashcards", label: "Flashcards", helper: "Fast review", icon: <Layers3 size={17} />, tone: "notebook-tone-red" },
+  { kind: "mind_map", label: "Mind Map", helper: "Concept links", icon: <BrainCircuit size={17} />, tone: "notebook-tone-pink" },
+  { kind: "apa_summary", label: "APA Summary", helper: "Academic format", icon: <FileText size={17} />, tone: "notebook-tone-green" },
+  { kind: "data_table", label: "Data Table", helper: "Structured view", icon: <Table2 size={17} />, tone: "notebook-tone-blue" },
+  { kind: "study_guide", label: "Study Guide", helper: "Review plan", icon: <BarChart3 size={17} />, tone: "notebook-tone-sand" },
+  { kind: "diagram", label: "Diagram", helper: "Flow view", icon: <BrainCircuit size={17} />, tone: "notebook-tone-green" },
+  { kind: "infographic", label: "Infographic", helper: "Visual brief", icon: <Sparkles size={17} />, tone: "notebook-tone-pink" },
 ];
 
 const futureTools = [
-  { label: "Audio Overview", helper: "Coming soon", icon: <Volume2 size={17} />, tone: "tone-blue" },
-  { label: "Slide Deck", helper: "Coming soon", icon: <FileText size={17} />, tone: "tone-sand" },
-  { label: "Video Overview", helper: "Coming soon", icon: <Video size={17} />, tone: "tone-green" },
-  { label: "Reports", helper: "Coming soon", icon: <BarChart3 size={17} />, tone: "tone-sand" },
+  { label: "Audio Overview", helper: "Coming soon", icon: <Volume2 size={17} />, tone: "notebook-tone-blue" },
+  { label: "Slide Deck", helper: "Coming soon", icon: <FileText size={17} />, tone: "notebook-tone-sand" },
+  { label: "Video Overview", helper: "Coming soon", icon: <Video size={17} />, tone: "notebook-tone-green" },
+  { label: "Reports", helper: "Coming soon", icon: <BarChart3 size={17} />, tone: "notebook-tone-sand" },
 ];
 
 export function StudyStudioPanel({

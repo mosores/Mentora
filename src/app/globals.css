@@ -13535,32 +13535,32 @@ button:active:not(:disabled),
   color: inherit;
 }
 
-.notebook-tool-tile.tone-blue {
+.notebook-tool-tile.notebook-tone-blue {
   background: var(--nb-blue-bg);
   color: var(--nb-blue);
 }
 
-.notebook-tool-tile.tone-green {
+.notebook-tool-tile.notebook-tone-green {
   background: var(--nb-green-bg);
   color: var(--nb-green);
 }
 
-.notebook-tool-tile.tone-cyan {
+.notebook-tool-tile.notebook-tone-cyan {
   background: var(--nb-cyan-bg);
   color: var(--nb-cyan);
 }
 
-.notebook-tool-tile.tone-red {
+.notebook-tool-tile.notebook-tone-red {
   background: var(--nb-red-bg);
   color: var(--nb-red);
 }
 
-.notebook-tool-tile.tone-pink {
+.notebook-tool-tile.notebook-tone-pink {
   background: var(--nb-pink-bg);
   color: var(--nb-pink);
 }
 
-.notebook-tool-tile.tone-sand {
+.notebook-tool-tile.notebook-tone-sand {
   background: var(--nb-sand-bg);
   color: var(--nb-sand);
 }
