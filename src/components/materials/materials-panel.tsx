@@ -41,15 +41,15 @@ export function MaterialsPanel({
   }, [documents, query]);
 
   return (
-    <aside className="materials-glass-shell flex h-full min-h-0 flex-col overflow-hidden border-r border-slate-200 bg-white text-[var(--mentora-text)]">
-      <div className="border-b border-slate-200 px-4 py-3">
+    <aside className="notebook-panel notebook-sources-panel flex h-full min-h-0 flex-col overflow-hidden text-[var(--nb-text)]">
+      <div className="notebook-panel-header px-5 py-4">
         <MaterialsHeader />
 
         <div className="grid gap-3 pt-2">
           <MaterialUploadMenu
             align="left"
             disabled={uploadBusy}
-            label="Agregar material"
+            label="Add sources"
             onAddLink={onAddLink}
             onCreateNote={onCreateNote}
             onUpload={onUpload}
@@ -59,11 +59,11 @@ export function MaterialsPanel({
         </div>
       </div>
 
-      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-3">
+      <div className="min-h-0 flex-1 overflow-y-auto px-4 py-4">
         {documents.length === 0 ? (
           <MaterialEmptyState />
         ) : filteredDocuments.length > 0 ? (
-          <div className="grid gap-1">
+          <div className="grid gap-2">
             {filteredDocuments.map((document) => (
               <MaterialCard
                 key={document.id}
@@ -83,11 +83,11 @@ export function MaterialsPanel({
 
 function NoResults({ query }: { query: string }) {
   return (
-    <div className="grid min-h-[16rem] place-items-center px-6 text-center text-sm font-medium text-slate-500">
+    <div className="notebook-empty-state grid min-h-[16rem] place-items-center px-6 text-center text-sm font-medium">
       <div className="grid max-w-[14rem] justify-items-center gap-2">
         <Search size={17} aria-hidden="true" />
         <p>No hay resultados.</p>
-        {query.trim() && <p className="text-xs leading-5 text-slate-400">Prueba con otra búsqueda.</p>}
+        {query.trim() && <p className="text-xs leading-5">Prueba con otra busqueda.</p>}
       </div>
     </div>
   );

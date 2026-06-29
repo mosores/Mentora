@@ -10,23 +10,25 @@ type MaterialCardProps = {
 };
 
 export function MaterialCard({ document, onToggle, selected }: MaterialCardProps) {
+  const status = sourceStatus(document.processing_status);
+
   return (
     <article
-      className={`group rounded-xl border px-2.5 py-2 transition ${
-        selected
-          ? "border-[rgba(37,99,235,0.18)] bg-[rgba(37,99,235,0.06)]"
-          : "border-transparent bg-transparent hover:border-slate-200 hover:bg-slate-50"
-      }`}
+      className={`notebook-source-card group rounded-[16px] border px-3 py-2.5 transition ${selected ? "is-selected" : ""}`}
     >
-      <div className="grid min-h-9 grid-cols-[26px_minmax(0,1fr)_24px] items-center gap-2">
-        <span className="flex h-6 w-6 items-center justify-center text-[var(--mentora-primary)]">{materialIcon(document.material_type)}</span>
-        <p className="min-w-0 truncate text-[13px] font-medium leading-5 text-slate-950">{document.file_name}</p>
+      <div className="grid min-h-11 grid-cols-[32px_minmax(0,1fr)_26px] items-center gap-3">
+        <span className="notebook-source-icon flex h-8 w-8 items-center justify-center rounded-[12px]">{materialIcon(document.material_type)}</span>
+        <div className="min-w-0">
+          <p className="min-w-0 truncate text-[13px] font-semibold leading-5">{document.file_name}</p>
+          <div className="mt-0.5 flex min-w-0 items-center gap-2 text-[11px] font-medium">
+            <span className={`notebook-source-status ${status.className}`}>{status.label}</span>
+            <span className="notebook-source-type truncate">{materialLabel(document.material_type)}</span>
+          </div>
+        </div>
         <button
           aria-label={selected ? "Quitar material del chat" : "Usar material en el chat"}
           aria-pressed={selected}
-          className={`flex h-5 w-5 items-center justify-center rounded border transition focus-visible:outline-none focus-visible:shadow-[var(--mentora-focus-ring)] ${
-            selected ? "border-slate-300 bg-slate-200 text-slate-700" : "border-slate-200 bg-slate-100 text-transparent hover:text-slate-500"
-          }`}
+          className="notebook-source-check flex h-6 w-6 items-center justify-center rounded-full border transition focus-visible:outline-none focus-visible:shadow-[var(--mentora-focus-ring)]"
           onClick={() => onToggle(document.id)}
           type="button"
         >
@@ -51,4 +53,32 @@ function materialIcon(type: MaterialType) {
     default:
       return <FileText size={18} />;
   }
+}
+
+function materialLabel(type: MaterialType) {
+  switch (type) {
+    case "image":
+      return "Image";
+    case "link":
+      return "Website";
+    case "text":
+      return "Note";
+    case "document":
+      return "Document";
+    case "pdf":
+    default:
+      return "PDF";
+  }
+}
+
+function sourceStatus(status: DocumentRecord["processing_status"]) {
+  if (status === "ready") {
+    return { className: "is-ready", label: "Ready" };
+  }
+
+  if (status === "failed") {
+    return { className: "is-failed", label: "Failed" };
+  }
+
+  return { className: "is-processing", label: "Preparing" };
 }

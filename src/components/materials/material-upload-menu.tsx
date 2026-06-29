@@ -100,7 +100,7 @@ export function MaterialUploadMenu({
 
   const triggerClass =
     variant === "bar"
-      ? "inline-flex min-h-8 w-full items-center justify-center gap-2 rounded-full border border-[rgba(15,23,42,0.12)] bg-white px-3 text-[13px] font-semibold text-slate-950 shadow-none transition hover:border-[rgba(37,99,235,0.22)] hover:bg-slate-50 focus-visible:outline-none focus-visible:shadow-[var(--mentora-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
+      ? "notebook-add-sources-button inline-flex min-h-10 w-full items-center justify-center gap-2 rounded-full border px-3 text-[14px] font-semibold shadow-none transition focus-visible:outline-none focus-visible:shadow-[var(--mentora-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60"
       : variant === "primary"
       ? "mentora-primary-button h-11 shrink-0 px-3 whitespace-nowrap"
       : "inline-flex min-h-11 items-center justify-center gap-2 rounded-2xl border border-[rgba(37,99,235,0.14)] bg-white px-3 text-sm font-black text-[var(--mentora-primary)] shadow-[0_14px_30px_rgba(42,64,128,0.1)] transition hover:-translate-y-0.5 hover:border-[rgba(37,99,235,0.26)] hover:bg-[#f7faff] focus-visible:outline-none focus-visible:shadow-[var(--mentora-focus-ring)] disabled:cursor-not-allowed disabled:opacity-60";
@@ -121,7 +121,7 @@ export function MaterialUploadMenu({
 
       {open && (
         <div
-          className={`materials-glass-popover absolute top-[calc(100%+10px)] z-50 grid w-[min(280px,calc(100vw-2rem))] gap-1 rounded-[22px] border border-[rgba(37,99,235,0.14)] bg-white/95 p-2 text-[var(--mentora-text)] shadow-[0_24px_54px_rgba(25,46,98,0.18)] backdrop-blur-xl ${
+          className={`notebook-popover materials-glass-popover absolute top-[calc(100%+10px)] z-50 grid w-[min(280px,calc(100vw-2rem))] gap-1 rounded-[18px] p-2 text-[var(--nb-text)] ${
             align === "right" ? "right-0" : "left-0"
           }`}
           role="menu"

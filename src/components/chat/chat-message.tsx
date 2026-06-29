@@ -27,19 +27,15 @@ export function ChatMessage({ message, t }: ChatMessageProps) {
 
   return (
     <article 
-      className={`chat-bubble ${isUser ? "is-user" : "is-assistant"} p-4 rounded-2xl border transition-all duration-200 ${
-        isUser 
-          ? "bg-slate-800/40 border-white/5 ml-auto max-w-[85%]" 
-          : "bg-slate-900/30 border-white/10 mr-auto max-w-[90%]"
-      }`}
+      className={`mentora-chat-message chat-bubble ${isUser ? "is-user ml-auto max-w-[85%]" : "is-assistant mr-auto max-w-[90%]"} rounded-[18px] border p-4 transition-all duration-200`}
     >
-      <div className="mb-2.5 flex items-center gap-2 text-xs font-bold uppercase tracking-wider text-slate-400">
+      <div className="mentora-chat-message-meta mb-2.5 flex items-center gap-2 text-xs font-semibold uppercase text-[var(--nb-muted)]">
         {isUser ? (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-cyan-500/10 text-cyan-400">
+          <span className="mentora-chat-message-icon flex h-5 w-5 items-center justify-center rounded-full">
             <UserRound size={12} />
           </span>
         ) : (
-          <span className="flex h-5 w-5 items-center justify-center rounded-full bg-indigo-500/10 text-indigo-400">
+          <span className="mentora-chat-message-icon flex h-5 w-5 items-center justify-center rounded-full">
             <BrainCircuit size={12} />
           </span>
         )}
@@ -50,7 +46,7 @@ export function ChatMessage({ message, t }: ChatMessageProps) {
         {message.content ? (
           <MarkdownMessage content={message.content} />
         ) : (
-          <div className="flex items-center gap-2 py-1 text-sm text-cyan-200">
+          <div className="flex items-center gap-2 py-1 text-sm text-[var(--nb-accent)]">
             <Loader2 className="animate-spin" size={14} />
             <span>{t.thinking || "Pensando..."}</span>
           </div>
@@ -58,19 +54,19 @@ export function ChatMessage({ message, t }: ChatMessageProps) {
       </div>
 
       {message.citations && message.citations.length > 0 && (
-        <div className="mt-4 border-t border-white/5 pt-3">
-          <p className="text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Citas y materiales:</p>
+        <div className="mentora-citations mt-4 border-t pt-3">
+          <p className="mb-2 text-[10px] font-semibold uppercase text-[var(--nb-muted)]">Citas y materiales:</p>
           <div className="flex flex-wrap gap-2">
             {message.citations.slice(0, 5).map((citation, index) => (
               <div 
                 key={`${citation.fileName}-${index}`} 
-                className="citation-chip flex items-center gap-1.5 rounded-lg border border-white/5 bg-slate-950/40 px-2.5 py-1 text-xs text-slate-300 transition-all hover:bg-slate-950/80 hover:text-white"
+                className="citation-chip flex items-center gap-1.5 rounded-lg border px-2.5 py-1 text-xs transition-all"
                 title={citation.content}
               >
-                <FileText size={12} className="text-cyan-400/80" />
+                <FileText size={12} />
                 <span className="max-w-[120px] truncate font-medium">{citation.fileName}</span>
                 {citation.pageNumber !== null && (
-                  <span className="rounded bg-white/5 px-1 py-0.2 font-mono text-[10px] text-slate-400">
+                  <span className="rounded px-1 py-px font-mono text-[10px]">
                     p. {citation.pageNumber}
                   </span>
                 )}

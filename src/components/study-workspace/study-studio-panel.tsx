@@ -1,6 +1,24 @@
 "use client";
 
-import { ArrowRight, BookOpen, BrainCircuit, Clipboard, ClipboardList, FileText, Layers3, Loader2, MessageSquareText, Pencil, RefreshCw, Sparkles, Table2, Trash2 } from "lucide-react";
+import {
+  ArrowRight,
+  BarChart3,
+  BookOpen,
+  BrainCircuit,
+  Clipboard,
+  ClipboardList,
+  FileText,
+  Layers3,
+  Loader2,
+  MessageSquareText,
+  Pencil,
+  RefreshCw,
+  Sparkles,
+  Table2,
+  Trash2,
+  Video,
+  Volume2,
+} from "lucide-react";
 import { useState } from "react";
 import type { ReactNode } from "react";
 import type { GeneratedArtifact, StudyNote, ToolKind } from "@/lib/types";
@@ -21,22 +39,23 @@ type StudyStudioPanelProps = {
   t: Record<string, string>;
 };
 
-const tools: Array<{ kind: ToolKind; label: string; helper: string; icon: ReactNode }> = [
-  { kind: "summary", label: "Resumen", helper: "Ideas principales", icon: <BookOpen size={17} /> },
-  { kind: "quiz", label: "Quiz", helper: "Preguntas de practica", icon: <ClipboardList size={17} /> },
-  { kind: "flashcards", label: "Flashcards", helper: "Repaso rapido", icon: <Layers3 size={17} /> },
-  { kind: "mind_map", label: "Mapa mental", helper: "Conexiones clave", icon: <BrainCircuit size={17} /> },
-  { kind: "apa_summary", label: "Cita APA", helper: "Formato academico", icon: <FileText size={17} /> },
-  { kind: "data_table", label: "Tabla", helper: "Conceptos ordenados", icon: <Table2 size={17} /> },
-  { kind: "study_guide", label: "Guia de estudio", helper: "Plan de repaso", icon: <BookOpen size={17} /> },
-  { kind: "diagram", label: "Diagrama", helper: "Flujo visual", icon: <BrainCircuit size={17} /> },
-  { kind: "infographic", label: "Infografia", helper: "Version visual", icon: <Sparkles size={17} /> },
+const tools: Array<{ kind: ToolKind; label: string; helper: string; icon: ReactNode; tone: string }> = [
+  { kind: "summary", label: "Summary", helper: "Key ideas", icon: <BookOpen size={17} />, tone: "tone-sand" },
+  { kind: "quiz", label: "Quiz", helper: "Practice questions", icon: <ClipboardList size={17} />, tone: "tone-cyan" },
+  { kind: "flashcards", label: "Flashcards", helper: "Fast review", icon: <Layers3 size={17} />, tone: "tone-red" },
+  { kind: "mind_map", label: "Mind Map", helper: "Concept links", icon: <BrainCircuit size={17} />, tone: "tone-pink" },
+  { kind: "apa_summary", label: "APA Summary", helper: "Academic format", icon: <FileText size={17} />, tone: "tone-green" },
+  { kind: "data_table", label: "Data Table", helper: "Structured view", icon: <Table2 size={17} />, tone: "tone-blue" },
+  { kind: "study_guide", label: "Study Guide", helper: "Review plan", icon: <BarChart3 size={17} />, tone: "tone-sand" },
+  { kind: "diagram", label: "Diagram", helper: "Flow view", icon: <BrainCircuit size={17} />, tone: "tone-green" },
+  { kind: "infographic", label: "Infographic", helper: "Visual brief", icon: <Sparkles size={17} />, tone: "tone-pink" },
 ];
 
 const futureTools = [
-  { label: "Audio resumen", helper: "Proximamente", icon: <Sparkles size={17} /> },
-  { label: "Presentacion", helper: "Proximamente", icon: <FileText size={17} /> },
-  { label: "Video resumen", helper: "Proximamente", icon: <Sparkles size={17} /> },
+  { label: "Audio Overview", helper: "Coming soon", icon: <Volume2 size={17} />, tone: "tone-blue" },
+  { label: "Slide Deck", helper: "Coming soon", icon: <FileText size={17} />, tone: "tone-sand" },
+  { label: "Video Overview", helper: "Coming soon", icon: <Video size={17} />, tone: "tone-green" },
+  { label: "Reports", helper: "Coming soon", icon: <BarChart3 size={17} />, tone: "tone-sand" },
 ];
 
 export function StudyStudioPanel({
@@ -68,117 +87,123 @@ export function StudyStudioPanel({
   }
 
   return (
-    <aside className="flex h-full min-h-0 flex-col border-l border-slate-200 bg-white">
-      <header className="border-b border-slate-200 p-3">
-        <p className="flex items-center gap-1.5 text-[11px] font-bold uppercase tracking-wide text-blue-700">
-          <Sparkles size={14} />
-          Studio
-        </p>
-        <h2 className="text-lg font-bold leading-tight text-slate-950">Recursos de estudio</h2>
-        <p className="mt-1 text-sm leading-5 text-slate-600">
-          {selectedCount > 0 ? `${selectedCount} materiales seleccionados.` : "Selecciona o sube un material primero."}
+    <aside className="notebook-panel notebook-studio-panel flex h-full min-h-0 flex-col">
+      <header className="notebook-panel-header px-5 py-4">
+        <h2 className="text-[20px] font-medium leading-none text-[var(--nb-text)]">Studio</h2>
+        <p className="mt-2 text-sm leading-5 text-[var(--nb-muted)]">
+          {selectedCount > 0 ? `${selectedCount} selected sources` : "Add or select a source to generate study outputs."}
         </p>
       </header>
 
-      <div className="min-h-0 flex-1 overflow-y-auto p-3">
-        <div className="grid grid-cols-1 gap-2">
+      <div className="min-h-0 flex-1 overflow-y-auto px-5 py-4">
+        <div className="notebook-tool-grid grid grid-cols-2 gap-2">
           {tools.map((tool) => {
             const loading = busy === tool.kind;
             const disabled = !hasSelectedReadyMaterial || loading;
             return (
               <button
                 key={tool.kind}
-                className={`group flex min-h-16 items-center gap-2 rounded-lg border p-2.5 text-left transition ${
-                  disabled
-                    ? "border-slate-200 bg-slate-50 text-slate-400"
-                    : "border-slate-200 bg-white text-slate-800 hover:border-blue-200 hover:bg-blue-50"
-                }`}
+                className={`notebook-tool-tile ${tool.tone} group grid min-h-[70px] grid-cols-[22px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] p-3 text-left transition ${disabled ? "is-disabled" : ""}`}
                 disabled={disabled}
                 onClick={() => runTool(tool.kind)}
                 type="button"
               >
-                <span className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-lg ${disabled ? "bg-white" : "bg-blue-50 text-blue-700"}`}>
+                <span className="notebook-tool-icon flex h-6 w-6 shrink-0 items-center justify-center">
                   {loading ? <Loader2 className="animate-spin" size={17} /> : tool.icon}
                 </span>
-                <span className="min-w-0 flex-1">
-                  <span className="block text-sm font-bold">{tool.label}</span>
-                  <span className="block truncate text-xs font-medium opacity-75">
-                    {loading ? "Generando..." : disabled ? "Selecciona o sube un material primero." : tool.helper}
+                <span className="min-w-0">
+                  <span className="block truncate text-[13px] font-semibold">{tool.label}</span>
+                  <span className="block truncate text-[11px] font-medium opacity-75">
+                    {loading ? "Generating..." : disabled ? "Add a source first" : tool.helper}
                   </span>
                 </span>
-                <ArrowRight size={15} className="shrink-0 opacity-50 transition group-hover:translate-x-0.5 group-hover:opacity-100" />
+                <ArrowRight size={16} className="notebook-tool-arrow shrink-0 transition group-hover:translate-x-0.5" />
               </button>
             );
           })}
 
           {futureTools.map((tool) => (
-            <div key={tool.label} className="flex min-h-16 items-center gap-2 rounded-lg border border-dashed border-slate-200 bg-slate-50 p-2.5 text-slate-400">
-              <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-white">{tool.icon}</span>
+            <div key={tool.label} className={`notebook-tool-tile ${tool.tone} is-coming-soon grid min-h-[70px] grid-cols-[22px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] p-3`}>
+              <span className="notebook-tool-icon flex h-6 w-6 shrink-0 items-center justify-center">{tool.icon}</span>
               <span className="min-w-0">
-                <span className="block text-sm font-bold">{tool.label}</span>
-                <span className="block text-xs font-medium">{tool.helper}</span>
+                <span className="block truncate text-[13px] font-semibold">{tool.label}</span>
+                <span className="block truncate text-[11px] font-medium opacity-75">{tool.helper}</span>
               </span>
+              <ArrowRight size={16} className="notebook-tool-arrow shrink-0" />
             </div>
           ))}
         </div>
 
-        <section className="mt-4 rounded-lg border border-slate-200 bg-slate-50 p-3">
-          <div className="mb-3 flex items-center justify-between gap-2">
-            <h3 className="text-sm font-bold text-slate-950">Resultados</h3>
+        <section className="notebook-studio-output mt-5 border-t pt-5">
+          <div className="mb-4 flex items-center justify-between gap-2">
+            <h3 className="text-sm font-semibold text-[var(--nb-text)]">Studio output</h3>
             <div className="flex items-center gap-1.5">
               <button
-                className="rounded-lg border border-slate-200 bg-white px-2.5 py-1.5 text-xs font-bold text-slate-700 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                className="notebook-add-note-button inline-flex min-h-9 items-center gap-2 rounded-full px-4 text-xs font-semibold transition"
                 onClick={addNote}
                 type="button"
               >
-                Agregar nota
+                <Clipboard size={14} />
+                Add note
               </button>
-              <span className="rounded-md bg-white px-2 py-1 text-xs font-bold text-slate-600">{artifacts.length}</span>
+              <span className="notebook-output-count rounded-full px-2.5 py-1 text-xs font-semibold">{artifacts.length}</span>
             </div>
           </div>
           {error && lastTool && (
-            <div className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3">
-              <p className="text-sm font-bold text-red-800">No se pudo generar.</p>
-              <p className="mt-1 text-xs leading-5 text-red-700">{error}</p>
+            <div className="notebook-error-row mb-3 rounded-[14px] p-3">
+              <p className="text-sm font-semibold">Could not generate.</p>
+              <p className="mt-1 text-xs leading-5">{error}</p>
               <button
-                className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-lg border border-red-200 bg-white px-2.5 text-xs font-bold text-red-700 transition hover:bg-red-100"
+                className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
                 onClick={() => runTool(lastTool)}
                 type="button"
               >
                 <RefreshCw size={13} />
-                Reintentar
+                Retry
               </button>
             </div>
           )}
           {artifacts.length === 0 ? (
-            <p className="rounded-lg border border-dashed border-slate-200 bg-white p-3 text-sm font-medium text-slate-600">
-              Los resultados apareceran aqui.
-            </p>
+            <div className="notebook-studio-empty grid min-h-[18rem] place-items-center text-center">
+              <div className="grid max-w-[18rem] justify-items-center gap-3">
+                <Sparkles size={30} />
+                <div>
+                  <p className="text-sm font-semibold text-[var(--nb-text)]">Studio output will be saved here.</p>
+                  <p className="mt-2 text-sm leading-6 text-[var(--nb-muted)]">
+                    After adding sources, click to add Audio Overview, Study Guide, Mind Map, and more.
+                  </p>
+                </div>
+                <button className="notebook-add-note-button inline-flex min-h-11 items-center gap-2 rounded-full px-5 text-sm font-semibold" onClick={addNote} type="button">
+                  <Clipboard size={15} />
+                  Add note
+                </button>
+              </div>
+            </div>
           ) : (
             <div className="space-y-2">
               {artifacts.slice(0, 4).map((artifact) => (
-                <article key={artifact.id} className="rounded-lg border border-slate-200 bg-white p-3">
-                  <p className="text-[11px] font-bold uppercase tracking-wide text-blue-700">{t[artifact.kind] ?? artifact.kind}</p>
-                  <h4 className="mt-1 text-sm font-bold text-slate-950">{artifact.title}</h4>
-                  <div className="mt-2 max-h-40 overflow-hidden text-sm">
+                <article key={artifact.id} className="notebook-output-card rounded-[14px] border p-3">
+                  <p className="text-[11px] font-semibold uppercase text-[var(--nb-accent)]">{t[artifact.kind] ?? artifact.kind}</p>
+                  <h4 className="mt-1 text-sm font-semibold text-[var(--nb-text)]">{artifact.title}</h4>
+                  <div className="mt-2 max-h-40 overflow-hidden text-sm text-[var(--nb-text)]">
                     <MarkdownMessage content={artifact.content} />
                   </div>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <button
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className="notebook-message-action inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
                       onClick={() => void navigator.clipboard?.writeText(artifact.content)}
                       type="button"
                     >
                       <Clipboard size={13} />
-                      Copiar
+                      Copy
                     </button>
                     <button
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className="notebook-message-action inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
                       onClick={() => onSendToChat(artifact)}
                       type="button"
                     >
                       <MessageSquareText size={13} />
-                      Usar en chat
+                      Use in chat
                     </button>
                   </div>
                 </article>
@@ -187,16 +212,16 @@ export function StudyStudioPanel({
           )}
           {notes.length > 0 && (
             <div className="mt-3 space-y-2">
-              <h3 className="text-sm font-bold text-slate-950">Notas</h3>
+              <h3 className="text-sm font-semibold text-[var(--nb-text)]">Notes</h3>
               {notes.map((note) => (
-                <article key={note.id} className="rounded-lg border border-slate-200 bg-white p-3">
-                  <h4 className="text-sm font-bold text-slate-950">{note.title}</h4>
-                  <p className="mt-1 line-clamp-3 text-xs leading-5 text-slate-600">{note.content}</p>
+                <article key={note.id} className="notebook-output-card rounded-[14px] border p-3">
+                  <h4 className="text-sm font-semibold text-[var(--nb-text)]">{note.title}</h4>
+                  <p className="mt-1 line-clamp-3 text-xs leading-5 text-[var(--nb-muted)]">{note.content}</p>
                   <div className="mt-3 flex flex-wrap gap-1.5">
                     <button
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 transition hover:border-blue-200 hover:bg-blue-50 hover:text-blue-700"
+                      className="notebook-message-action inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
                       onClick={() => {
-                        const nextTitle = window.prompt("Titulo de la nota", note.title);
+                        const nextTitle = window.prompt("Note title", note.title);
                         if (nextTitle?.trim()) {
                           void onUpdateNote(note.id, { title: nextTitle.trim() });
                         }
@@ -204,19 +229,19 @@ export function StudyStudioPanel({
                       type="button"
                     >
                       <Pencil size={13} />
-                      Editar titulo
+                      Rename
                     </button>
                     <button
-                      className="inline-flex h-8 items-center gap-1.5 rounded-lg border border-slate-200 bg-white px-2.5 text-xs font-bold text-slate-600 transition hover:border-red-200 hover:bg-red-50 hover:text-red-700"
+                      className="notebook-message-action is-danger inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
                       onClick={() => {
-                        if (window.confirm("Eliminar esta nota?")) {
+                        if (window.confirm("Delete this note?")) {
                           void onDeleteNote(note.id);
                         }
                       }}
                       type="button"
                     >
                       <Trash2 size={13} />
-                      Eliminar
+                      Delete
                     </button>
                   </div>
                 </article>
