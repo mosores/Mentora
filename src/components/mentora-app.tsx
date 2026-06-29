@@ -485,18 +485,30 @@ function isPlainRecord(value: unknown): value is Record<string, unknown> {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+type SupabaseSetupState = {
+  client: SupabaseClient | null;
+  error: string | null;
+  loading: boolean;
+};
+
+type RuntimePublicEnvPayload = {
+  configured?: boolean;
+  error?: unknown;
+  supabaseAnonKey?: unknown;
+  supabaseUrl?: unknown;
+};
+
+function createInitialSupabaseSetup(): SupabaseSetupState {
+  try {
+    return { client: createClient(), error: null, loading: false };
+  } catch {
+    return { client: null, error: null, loading: true };
+  }
+}
+
 export function MentoraApp() {
   const [locale, setLocale] = useState<Locale>("es");
-  const supabaseSetup = useMemo(() => {
-    try {
-      return { client: createClient(), error: null };
-    } catch (caught) {
-      return {
-        client: null,
-        error: caught instanceof Error ? caught.message : "Supabase is not configured.",
-      };
-    }
-  }, []);
+  const [supabaseSetup, setSupabaseSetup] = useState<SupabaseSetupState>(() => createInitialSupabaseSetup());
   const supabase = supabaseSetup.client;
   const setupError = supabaseSetup.error;
   const manualSignOutRef = useRef(false);
@@ -536,6 +548,56 @@ export function MentoraApp() {
   const [openRouterServerConnected, setOpenRouterServerConnected] = useState(false);
   const [openRouterConnectionError, setOpenRouterConnectionError] = useState<string | null>(null);
   const t = copy[locale];
+
+  useEffect(() => {
+    if (supabaseSetup.client || supabaseSetup.error) {
+      return;
+    }
+
+    let cancelled = false;
+
+    async function loadRuntimePublicEnv() {
+      try {
+        const response = await fetch("/api/public-env", { cache: "no-store" });
+        const payload = await response.json().catch(() => ({})) as RuntimePublicEnvPayload;
+
+        if (!response.ok || !payload.configured) {
+          throw new Error(
+            typeof payload.error === "string"
+              ? payload.error
+              : "Supabase browser environment variables are not configured.",
+          );
+        }
+
+        if (typeof payload.supabaseUrl !== "string" || typeof payload.supabaseAnonKey !== "string") {
+          throw new Error("Supabase browser environment variables are not configured.");
+        }
+
+        const client = createClient({
+          supabaseAnonKey: payload.supabaseAnonKey,
+          supabaseUrl: payload.supabaseUrl,
+        });
+
+        if (!cancelled) {
+          setSupabaseSetup({ client, error: null, loading: false });
+        }
+      } catch (caught) {
+        if (!cancelled) {
+          setSupabaseSetup({
+            client: null,
+            error: caught instanceof Error ? caught.message : "Supabase is not configured.",
+            loading: false,
+          });
+        }
+      }
+    }
+
+    void loadRuntimePublicEnv();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [supabaseSetup.client, supabaseSetup.error]);
 
   const handleManualSignOut = useCallback(() => {
     manualSignOutRef.current = true;
@@ -889,6 +951,10 @@ export function MentoraApp() {
 
     return () => window.clearInterval(interval);
   }, [loadWorkspace, supabase, session, processingDocuments.length]);
+
+  if (supabaseSetup.loading) {
+    return <ConfigLoadingScreen />;
+  }
 
   if (setupError) {
     return <SetupScreen message={setupError} />;
@@ -1746,6 +1812,17 @@ function MotionView({ children }: { children: ReactNode }) {
     >
       {children}
     </motion.div>
+  );
+}
+
+function ConfigLoadingScreen() {
+  return (
+    <main className="mentora-shell flex min-h-screen items-center justify-center p-4 text-white">
+      <div className="flex items-center gap-3 rounded-2xl border border-white/10 bg-white/[0.06] px-5 py-4 text-sm font-semibold text-slate-100 shadow-2xl">
+        <Loader2 className="animate-spin text-cyan-200" size={18} />
+        <span>Loading Mentora</span>
+      </div>
+    </main>
   );
 }
 

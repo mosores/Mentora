@@ -5,6 +5,11 @@ import { publicEnv } from "@/lib/env";
 
 const AUTH_COOKIE_EXPIRY_MARGIN_MS = 60_000;
 
+type BrowserClientConfig = {
+  supabaseAnonKey?: string;
+  supabaseUrl?: string;
+};
+
 function getAuthStorageKey(supabaseUrl: string) {
   return `sb-${new URL(supabaseUrl).hostname.split(".")[0]}-auth-token`;
 }
@@ -115,14 +120,17 @@ function clearExpiredAuthSession(supabaseUrl: string) {
   }
 }
 
-export function createClient() {
-  if (!publicEnv.NEXT_PUBLIC_SUPABASE_URL || !publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+export function createClient(config: BrowserClientConfig = {}) {
+  const supabaseUrl = config.supabaseUrl || publicEnv.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseAnonKey = config.supabaseAnonKey || publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+
+  if (!supabaseUrl || !supabaseAnonKey) {
     throw new Error("Supabase browser environment variables are not configured.");
   }
 
-  clearExpiredAuthSession(publicEnv.NEXT_PUBLIC_SUPABASE_URL);
+  clearExpiredAuthSession(supabaseUrl);
 
-  return createBrowserClient(publicEnv.NEXT_PUBLIC_SUPABASE_URL, publicEnv.NEXT_PUBLIC_SUPABASE_ANON_KEY, {
+  return createBrowserClient(supabaseUrl, supabaseAnonKey, {
     global: {
       fetch: async (input, init) => {
         try {
