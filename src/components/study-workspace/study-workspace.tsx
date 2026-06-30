@@ -30,6 +30,13 @@ type StudyWorkspaceProps = {
   busy: string | null;
   error: string | null;
   messages: ChatMessageData[];
+  models: Array<{
+    contextLength: number | null;
+    id: string;
+    isFree: boolean;
+    name: string;
+    pricingLabel: string;
+  }>;
   onAddLink: (url: string) => Promise<boolean> | boolean;
   onCreateSpace: (name: string) => Promise<string | null>;
   onCreateNote: (text: string, selectedDocumentIds?: string[]) => Promise<boolean> | boolean;
@@ -39,14 +46,18 @@ type StudyWorkspaceProps = {
   onGenerate: (kind: ToolKind, selectedDocumentIds?: string[]) => Promise<GeneratedArtifact | null>;
   onOpenProfile: () => void;
   onOpenProgress: () => void;
+  onSelectModel: (modelId: string) => void;
   onSelectSpace: (spaceId: string) => void;
   onSend: (message: string, selectedDocumentIds?: string[]) => void;
   onSignOut: () => void;
   onUpdateNote: (noteId: string, patch: { title?: string; content?: string }) => Promise<boolean> | boolean;
   onUpload: (file: File, materialType: MaterialType) => Promise<boolean> | boolean;
+  openRouterConnected: boolean;
+  openRouterServerConnected: boolean;
   profile: Profile | null;
   generatorReadyDocuments: DocumentRecord[];
   readyDocuments: DocumentRecord[];
+  selectedModel: string;
   spaces: StudySpace[];
   t: Record<string, string>;
 };
@@ -59,6 +70,7 @@ export function StudyWorkspace({
   busy,
   error,
   messages,
+  models,
   onAddLink,
   onCreateSpace,
   onCreateNote,
@@ -68,14 +80,18 @@ export function StudyWorkspace({
   onGenerate,
   onOpenProfile,
   onOpenProgress,
+  onSelectModel,
   onSelectSpace,
   onSend,
   onSignOut,
   onUpdateNote,
   onUpload,
+  openRouterConnected,
+  openRouterServerConnected,
   profile,
   generatorReadyDocuments,
   readyDocuments,
+  selectedModel,
   spaces,
   t,
 }: StudyWorkspaceProps) {
@@ -231,14 +247,19 @@ export function StudyWorkspace({
       <StudyTopbar
         activeSpace={activeSpace}
         documents={activeDocuments}
+        models={models}
         onCreateSpace={onCreateSpace}
         onOpenProfile={onOpenProfile}
         onOpenProgress={onOpenProgress}
+        onSelectModel={onSelectModel}
         onSelectSpace={onSelectSpace}
         onSignOut={onSignOut}
         onThemeModeChange={setThemeMode}
+        openRouterConnected={openRouterConnected}
+        openRouterServerConnected={openRouterServerConnected}
         profile={profile}
         readyCount={readyDocuments.length}
+        selectedModel={selectedModel}
         spaces={spaces}
         themeMode={themeMode}
       />
@@ -349,6 +370,10 @@ export function StudyWorkspace({
                   onCreateNote={(text) => onCreateNote(text, selectedMaterialIds)}
                   onDeleteNote={onDeleteNote}
                   onGenerate={(kind) => onGenerate(kind, generationMaterialIds)}
+                  onOpenSources={() => {
+                    setLeftCollapsed(false);
+                    setMobilePanel("sources");
+                  }}
                   onSendToChat={sendArtifactToChat}
                   onUpdateNote={onUpdateNote}
                   readySourceCount={generatorReadyDocuments.length}
@@ -369,6 +394,10 @@ export function StudyWorkspace({
               onCreateNote={(text) => onCreateNote(text, selectedMaterialIds)}
               onDeleteNote={onDeleteNote}
               onGenerate={(kind) => onGenerate(kind, generationMaterialIds)}
+              onOpenSources={() => {
+                setLeftCollapsed(false);
+                setMobilePanel("sources");
+              }}
               onSendToChat={sendArtifactToChat}
               onUpdateNote={onUpdateNote}
               readySourceCount={generatorReadyDocuments.length}

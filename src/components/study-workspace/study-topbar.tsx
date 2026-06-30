@@ -8,6 +8,7 @@ import {
   Plus,
   Settings2,
   Share2,
+  Sparkles,
   Sun,
   UserRound,
 } from "lucide-react";
@@ -16,17 +17,30 @@ import type { DocumentRecord, Profile, StudySpace } from "@/lib/types";
 
 export type ThemeMode = "light" | "dark";
 
+type TopbarModelOption = {
+  contextLength: number | null;
+  id: string;
+  isFree: boolean;
+  name: string;
+  pricingLabel: string;
+};
+
 type StudyTopbarProps = {
   activeSpace: StudySpace | null;
   documents: DocumentRecord[];
+  models: TopbarModelOption[];
   onCreateSpace: (name: string) => Promise<string | null>;
   onOpenProfile: () => void;
   onOpenProgress: () => void;
+  onSelectModel: (modelId: string) => void;
   onSelectSpace: (spaceId: string) => void;
   onSignOut: () => void;
   onThemeModeChange: (mode: ThemeMode) => void;
+  openRouterConnected: boolean;
+  openRouterServerConnected: boolean;
   profile: Profile | null;
   readyCount: number;
+  selectedModel: string;
   spaces: StudySpace[];
   themeMode: ThemeMode;
 };
@@ -34,14 +48,19 @@ type StudyTopbarProps = {
 export function StudyTopbar({
   activeSpace,
   documents,
+  models,
   onCreateSpace,
   onOpenProfile,
   onOpenProgress,
+  onSelectModel,
   onSelectSpace,
   onSignOut,
   onThemeModeChange,
+  openRouterConnected,
+  openRouterServerConnected,
   profile,
   readyCount,
+  selectedModel,
   spaces,
   themeMode,
 }: StudyTopbarProps) {
@@ -132,7 +151,7 @@ export function StudyTopbar({
             <span className="hidden lg:inline">Settings</span>
           </button>
           {settingsOpen && (
-            <div className="notebook-popover notebook-settings-popover absolute right-0 top-[calc(100%+10px)] z-50 w-72 rounded-2xl p-3">
+            <div className="notebook-popover notebook-settings-popover absolute right-0 top-[calc(100%+10px)] z-50 w-80 rounded-2xl p-3">
               <div className="mb-3">
                 <p className="text-sm font-semibold">Settings</p>
                 <p className="mt-1 text-xs">Tune the notebook workspace.</p>
@@ -159,6 +178,16 @@ export function StudyTopbar({
                     Dark
                   </button>
                 </div>
+              </div>
+              <div className="notebook-setting-row mt-3">
+                <span>OpenRouter model</span>
+                <CompactModelSelector
+                  models={models}
+                  onSelect={onSelectModel}
+                  openRouterConnected={openRouterConnected}
+                  openRouterServerConnected={openRouterServerConnected}
+                  selectedModel={selectedModel}
+                />
               </div>
               <button className="notebook-menu-item mt-3" onClick={openProfile} type="button">
                 <Settings2 size={15} />
@@ -218,4 +247,58 @@ function getInitials(value: string) {
   }
 
   return value.slice(0, 2).toUpperCase() || "M";
+}
+
+function CompactModelSelector({
+  models,
+  onSelect,
+  openRouterConnected,
+  openRouterServerConnected,
+  selectedModel,
+}: {
+  models: TopbarModelOption[];
+  onSelect: (modelId: string) => void;
+  openRouterConnected: boolean;
+  openRouterServerConnected: boolean;
+  selectedModel: string;
+}) {
+  const availableModels = models.length > 0
+    ? models
+    : [{ id: "openrouter/free", name: "OpenRouter Free Router", contextLength: null, isFree: true, pricingLabel: "Free" }];
+  const freeModels = availableModels.filter((model) => model.isFree);
+  const paidModels = availableModels.filter((model) => !model.isFree);
+  const activeModel = availableModels.find((model) => model.id === selectedModel) ?? availableModels[0];
+  const connectionLabel = activeModel.isFree
+    ? openRouterServerConnected ? "Mentora OpenRouter connected" : "Free OpenRouter router"
+    : openRouterConnected ? "Using your OpenRouter key" : "Select paid model to add API key";
+
+  return (
+    <label className="notebook-model-select">
+      <span className="notebook-model-select-heading">
+        <span>
+          <Sparkles size={13} />
+          AI model
+        </span>
+        <small className={openRouterConnected || openRouterServerConnected ? "is-connected" : ""}>{connectionLabel}</small>
+      </span>
+      <select aria-label="OpenRouter model" onChange={(event) => onSelect(event.target.value)} value={activeModel.id}>
+        <optgroup label="Free models">
+          {freeModels.map((model) => (
+            <option key={model.id} value={model.id}>
+              {model.name} - Free
+            </option>
+          ))}
+        </optgroup>
+        {paidModels.length > 0 && (
+          <optgroup label="Paid OpenRouter models">
+            {paidModels.map((model) => (
+              <option key={model.id} value={model.id}>
+                {model.name} - Paid
+              </option>
+            ))}
+          </optgroup>
+        )}
+      </select>
+    </label>
+  );
 }

@@ -37,6 +37,7 @@ type StudyStudioPanelProps = {
   onCollapse?: () => void;
   onDeleteNote: (noteId: string) => Promise<boolean> | boolean;
   onGenerate: (kind: ToolKind) => Promise<GeneratedArtifact | null>;
+  onOpenSources?: () => void;
   onSendToChat: (artifact: GeneratedArtifact) => void;
   onUpdateNote: (noteId: string, patch: { title?: string; content?: string }) => Promise<boolean> | boolean;
   readySourceCount: number;
@@ -74,6 +75,7 @@ export function StudyStudioPanel({
   onCollapse,
   onDeleteNote,
   onGenerate,
+  onOpenSources,
   onSendToChat,
   onUpdateNote,
   readySourceCount,
@@ -83,6 +85,7 @@ export function StudyStudioPanel({
 }: StudyStudioPanelProps) {
   const [lastTool, setLastTool] = useState<ToolKind | null>(null);
   const [activeArtifact, setActiveArtifact] = useState<GeneratedArtifact | null>(null);
+  const [sourceBlockedMessage, setSourceBlockedMessage] = useState<string | null>(null);
 
   useEffect(() => {
     if (!activeArtifact) {
@@ -108,6 +111,16 @@ export function StudyStudioPanel({
 
   async function runTool(kind: ToolKind) {
     setLastTool(kind);
+    if (!hasReadyMaterial) {
+      setSourceBlockedMessage(
+        blockedReadySourceCount > 0
+          ? "Ready files found, but no readable chunks were created yet. Upload a text/PDF source or paste notes with readable text."
+          : "Add a readable source first. Use Sources -> Add sources -> Crear nota, upload a PDF, or paste a link.",
+      );
+      return;
+    }
+
+    setSourceBlockedMessage(null);
     const artifact = await onGenerate(kind);
     if (artifact) {
       setActiveArtifact(artifact);
@@ -158,10 +171,11 @@ export function StudyStudioPanel({
         <div className="notebook-tool-grid grid grid-cols-2 gap-2">
           {tools.map((tool) => {
             const loading = busy === tool.kind;
-            const disabled = !hasReadyMaterial || loading;
+            const sourceNeeded = !hasReadyMaterial;
+            const disabled = loading;
             const helper = loading
               ? "Generating..."
-              : !hasReadyMaterial
+              : sourceNeeded
                 ? blockedReadySourceCount > 0
                   ? "No readable chunks"
                   : "Add a readable source"
@@ -172,7 +186,7 @@ export function StudyStudioPanel({
               <button
                 key={tool.kind}
                 aria-label={`${tool.label}: ${helper}`}
-                className={`notebook-tool-tile ${tool.tone} group grid min-h-[70px] grid-cols-[22px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] p-3 text-left transition ${disabled ? "is-disabled" : ""}`}
+                className={`notebook-tool-tile ${tool.tone} group grid min-h-[70px] grid-cols-[22px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] p-3 text-left transition ${disabled ? "is-disabled" : ""} ${sourceNeeded ? "is-source-needed" : ""}`}
                 disabled={disabled}
                 onMouseDown={preventTileSelection}
                 onClick={() => void runTool(tool.kind)}
@@ -198,7 +212,6 @@ export function StudyStudioPanel({
               aria-disabled="true"
               aria-label={`${tool.label}: ${tool.helper}`}
               className={`notebook-tool-tile ${tool.tone} is-coming-soon grid min-h-[70px] grid-cols-[22px_minmax(0,1fr)_24px] items-center gap-2 rounded-[12px] p-3`}
-              disabled
               onMouseDown={preventTileSelection}
               type="button"
             >
@@ -227,18 +240,29 @@ export function StudyStudioPanel({
               <span className="notebook-output-count rounded-full px-2.5 py-1 text-xs font-semibold">{artifacts.length}</span>
             </div>
           </div>
-          {error && lastTool && (
-            <div className="notebook-error-row mb-3 rounded-[14px] p-3">
-              <p className="text-sm font-semibold">Could not generate.</p>
-              <p className="mt-1 text-xs leading-5">{error}</p>
-              <button
-                className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
-                onClick={() => void runTool(lastTool)}
-                type="button"
-              >
-                <RefreshCw size={13} />
-                Retry
-              </button>
+          {(sourceBlockedMessage || error) && lastTool && (
+            <div className={`notebook-error-row mb-3 rounded-[14px] p-3 ${sourceBlockedMessage ? "is-info" : ""}`}>
+              <p className="text-sm font-semibold">{sourceBlockedMessage ? "Source needed" : "Could not generate."}</p>
+              <p className="mt-1 text-xs leading-5">{sourceBlockedMessage ?? error}</p>
+              {sourceBlockedMessage ? (
+                <button
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
+                  onClick={onOpenSources}
+                  type="button"
+                >
+                  <BookOpen size={13} />
+                  Open Sources
+                </button>
+              ) : (
+                <button
+                  className="mt-2 inline-flex h-8 items-center gap-1.5 rounded-full px-2.5 text-xs font-semibold transition"
+                  onClick={() => void runTool(lastTool)}
+                  type="button"
+                >
+                  <RefreshCw size={13} />
+                  Retry
+                </button>
+              )}
             </div>
           )}
           {artifacts.length === 0 ? (

@@ -13117,6 +13117,60 @@ button:active:not(:disabled),
   box-shadow: 0 8px 18px rgba(21, 27, 45, 0.1);
 }
 
+.notebook-model-select {
+  display: grid;
+  gap: 7px;
+}
+
+.notebook-model-select-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px;
+  color: var(--nb-text);
+  font-size: 12px;
+  font-weight: 750;
+}
+
+.notebook-model-select-heading > span {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.notebook-model-select-heading small {
+  max-width: 11rem;
+  color: var(--nb-muted);
+  font-size: 10px;
+  font-weight: 650;
+  line-height: 1.3;
+  text-align: right;
+}
+
+.notebook-model-select-heading small.is-connected {
+  color: var(--nb-green);
+}
+
+.notebook-model-select select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid var(--nb-border);
+  border-radius: 13px;
+  background: var(--nb-panel-soft);
+  color: var(--nb-text);
+  padding: 0 10px;
+  font-size: 12px;
+  font-weight: 650;
+  outline: none;
+}
+
+.notebook-model-select select:hover,
+.notebook-model-select select:focus {
+  border-color: var(--nb-border-strong);
+  background: var(--nb-panel);
+}
+
 .notebook-menu-item {
   display: flex;
   width: 100%;
@@ -13686,13 +13740,21 @@ button:active:not(:disabled),
   box-shadow: var(--nb-focus);
 }
 
-.notebook-tool-tile.is-disabled,
-.notebook-tool-tile.is-coming-soon {
+.notebook-tool-tile.is-disabled {
   opacity: 0.62;
 }
 
 .notebook-tool-tile.is-coming-soon {
-  cursor: not-allowed;
+  cursor: default;
+  opacity: 0.62;
+}
+
+.notebook-tool-tile.is-source-needed {
+  opacity: 0.82;
+}
+
+.notebook-tool-tile.is-source-needed:hover {
+  opacity: 1;
 }
 
 .notebook-tool-arrow {
@@ -13717,6 +13779,12 @@ button:active:not(:disabled),
   border: 1px solid color-mix(in srgb, var(--nb-red) 26%, var(--nb-border));
   background: color-mix(in srgb, var(--nb-red-bg) 72%, var(--nb-panel));
   color: var(--nb-red);
+}
+
+.notebook-error-row.is-info {
+  border-color: color-mix(in srgb, var(--nb-accent) 24%, var(--nb-border));
+  background: color-mix(in srgb, var(--nb-blue-bg) 64%, var(--nb-panel));
+  color: var(--nb-text);
 }
 
 .notebook-output-card.is-clickable {

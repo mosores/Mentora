@@ -1096,6 +1096,7 @@ export function MentoraApp() {
                       busy={busy}
                       error={error}
                       messages={messages}
+                      models={models}
                       onAddLink={uploadLink}
                       onCreateSpace={(name) => createStudySpace(name)}
                       onCreateNote={saveStudyNote}
@@ -1107,14 +1108,18 @@ export function MentoraApp() {
                       }
                       onOpenProfile={() => setActiveView("profile")}
                       onOpenProgress={() => setError(locale === "es" ? "Progreso estara disponible cuando haya datos reales de estudio." : "Progress will be available when real study data exists.")}
+                      onSelectModel={handleModelSelect}
                       onSelectSpace={setActiveSpaceId}
                       onSend={sendTutorMessage}
                       onSignOut={handleManualSignOut}
                       onUpdateNote={updateStudyNote}
                       onUpload={uploadDocument}
+                      openRouterConnected={openRouterConnected}
+                      openRouterServerConnected={openRouterServerConnected}
                       profile={profile}
                       generatorReadyDocuments={generatorReadyDocuments}
                       readyDocuments={readyDocuments}
+                      selectedModel={selectedModel}
                       spaces={spaces}
                       t={t}
                     />
